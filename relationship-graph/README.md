@@ -45,6 +45,8 @@ docker compose up --build
 
 > Migrations run automatically (`flask db upgrade`) before the backend starts.
 
+To seed fake data, run the seed script from your host machine against the containerized Postgres (exposed on `localhost:5432`) — it isn't bundled into the backend image. From `backend/`, with a venv that has `requirements.txt` installed and `DATABASE_URL` pointing at `localhost:5432`: `python ../scripts/seed.py`.
+
 Admin login (dev default — **change before deploying**, see `backend/.env.example`): username `admin`, password `admin`.
 
 ### Option B — Local development (no Docker)
@@ -71,6 +73,15 @@ npm run dev
 
 Requires a local PostgreSQL instance matching `DATABASE_URL` in `backend/.env`.
 
+### Seeding fake data
+
+```bash
+cd backend
+python ../scripts/seed.py     # 100 people, 300 relationships, generated avatars
+```
+
+See [scripts/README.md](scripts/README.md) for options (`--people`, `--relationships`, `--reset`, `--no-avatars`).
+
 ## Backend Architecture
 
 Clean architecture with a strict dependency direction:
@@ -96,8 +107,8 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 - [x] **Phase 5** — Frontend layout (sidebar, search, dark mode)
 - [x] **Phase 6** — Interactive graph (React Flow)
 - [x] **Phase 7** — CRUD (profile page, admin panel)
-- [ ] **Phase 8** — Dashboard + seed data
-- [ ] **Phase 9** — Optimization
+- [x] **Phase 8** — Dashboard + seed data — see [scripts/README.md](scripts/README.md)
+- [x] **Phase 9** — Optimization
 - [ ] **Phase 10** — Testing
 
 ## API Documentation

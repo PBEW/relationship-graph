@@ -93,7 +93,9 @@ Validation: `person_a_id` must differ from `person_b_id`; `end_date` (if set) mu
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/uploads/<filename>` | Serves a stored avatar file (not under `/api`). |
+| GET | `/uploads/<filename>` | Serves a stored avatar file (not under `/api`). Served with `Cache-Control: public, max-age=31536000, immutable` — safe since filenames are UUID-based and never reused in place. |
+
+Avatars uploaded via `POST /api/people/<uuid>/avatar` are validated as real images (Pillow-decoded, not just extension-checked) and downscaled to a max of 512×512 (aspect-ratio preserved, never upscaled) before being saved, to keep storage/bandwidth down.
 
 ---
 

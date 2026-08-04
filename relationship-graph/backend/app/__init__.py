@@ -31,6 +31,13 @@ def create_app(env_name: str | None = None) -> Flask:
 
     @app.get("/uploads/<path:filename>")
     def uploaded_file(filename: str):
-        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+        # Filenames are UUID-based and never reused/mutated in place (a new
+        # upload gets a fresh name and the old file is deleted), so these are
+        # safe to cache aggressively and immutably.
+        response = send_from_directory(
+            app.config["UPLOAD_FOLDER"], filename, max_age=31536000, conditional=True
+        )
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
 
     return app
