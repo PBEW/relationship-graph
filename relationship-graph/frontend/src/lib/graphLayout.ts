@@ -21,8 +21,8 @@ export interface PositionedNode {
  */
 export function computeForceLayout(
   data: GraphData,
-  width = 1000,
-  height = 700,
+  width = 1400,
+  height = 1000,
 ): Map<string, PositionedNode> {
   interface SimNode {
     id: string;
@@ -33,19 +33,21 @@ export function computeForceLayout(
   const simNodes: SimNode[] = data.nodes.map((n) => ({ id: n.id }));
   const simLinks = data.edges.map((e) => ({ source: e.source, target: e.target }));
 
+  // More link distance / repulsion / collision radius than a naive default -
+  // dense graphs (100+ nodes) need real breathing room or every edge overlaps.
   const simulation = forceSimulation(simNodes)
     .force(
       "link",
       forceLink(simLinks)
         .id((d) => (d as SimNode).id)
-        .distance(160),
+        .distance(220),
     )
-    .force("charge", forceManyBody().strength(-320))
+    .force("charge", forceManyBody().strength(-450))
     .force("center", forceCenter(width / 2, height / 2))
-    .force("collide", forceCollide(70))
+    .force("collide", forceCollide(95))
     .stop();
 
-  simulation.tick(300);
+  simulation.tick(400);
 
   const positions = new Map<string, PositionedNode>();
   for (const node of simNodes) {

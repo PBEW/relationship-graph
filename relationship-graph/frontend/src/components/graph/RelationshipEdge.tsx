@@ -7,6 +7,8 @@ export interface RelationshipEdgeData extends Record<string, unknown> {
   color: string;
   status: "active" | "ended";
   dimmed: boolean;
+  /** Connected to the hovered/selected node, or matches an active search - draw it more prominently and show its label. */
+  emphasized: boolean;
 }
 
 export type RelationshipEdgeType = Edge<RelationshipEdgeData, "relationship">;
@@ -32,7 +34,8 @@ export function RelationshipEdge({
   });
 
   if (!data) return null;
-  const { label, color, status, dimmed } = data;
+  const { label, color, status, dimmed, emphasized } = data;
+  const showLabel = selected || emphasized;
 
   return (
     <>
@@ -41,27 +44,30 @@ export function RelationshipEdge({
         path={edgePath}
         style={{
           stroke: color,
-          strokeWidth: selected ? 3 : 2,
-          opacity: dimmed ? 0.15 : status === "ended" ? 0.5 : 0.9,
+          strokeWidth: selected ? 3 : emphasized ? 2.5 : 1.5,
+          opacity: dimmed ? 0.08 : emphasized ? 0.95 : status === "ended" ? 0.25 : 0.35,
           strokeDasharray: status === "ended" ? "6 4" : undefined,
         }}
       />
-      <EdgeLabelRenderer>
-        <div
-          className={cn(
-            "nodrag nopan absolute rounded-full border px-1.5 py-0.5 text-[10px] font-medium shadow-sm",
-            dimmed && "opacity-15",
-          )}
-          style={{
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            backgroundColor: "var(--card)",
-            borderColor: color,
-            color,
-          }}
-        >
-          {label}
-        </div>
-      </EdgeLabelRenderer>
+      {showLabel && (
+        <EdgeLabelRenderer>
+          <div
+            className={cn(
+              "nodrag nopan absolute rounded-full border px-1.5 py-0.5 text-[10px] font-medium shadow-sm",
+              dimmed && "opacity-15",
+            )}
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              backgroundColor: "var(--card)",
+              borderColor: color,
+              color,
+              zIndex: 1000,
+            }}
+          >
+            {label}
+          </div>
+        </EdgeLabelRenderer>
+      )}
     </>
   );
 }

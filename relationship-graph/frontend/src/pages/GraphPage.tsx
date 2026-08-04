@@ -7,6 +7,8 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  useEdgesState,
+  useNodesState,
   useReactFlow,
   type EdgeMouseHandler,
   type NodeMouseHandler,
@@ -36,8 +38,26 @@ function GraphCanvas({ data }: { data: GraphData }) {
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
-  const positions = useMemo(() => computeForceLayout(data), [data]);
+  // Nodes/edges live in React-Flow-managed state (via useNodesState) rather
+  // than being passed straight from a memo, specifically so dragging a node
+  // persists: a memo would hand back the same force-layout position on every
+  // unrelated re-render (search, hover, ...) and silently snap drags back.
+  const [nodes, setNodes, onNodesChange] = useNodesState<AvatarNodeType>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<RelationshipEdgeType>([]);
+
+  const initialPositions = useMemo(() => computeForceLayout(data), [data]);
+
+  const neighborMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const node of data.nodes) map.set(node.id, new Set());
+    for (const edge of data.edges) {
+      map.get(edge.source)?.add(edge.target);
+      map.get(edge.target)?.add(edge.source);
+    }
+    return map;
+  }, [data]);
 
   const toggleCollapse = useCallback((personId: string) => {
     setCollapsedNodeIds((prev) => {
@@ -99,14 +119,21 @@ function GraphCanvas({ data }: { data: GraphData }) {
     );
   }, [data.nodes, debouncedSearch]);
 
-  const nodes: AvatarNodeType[] = useMemo(
+  const hoveredNeighborhood = useMemo(() => {
+    if (!hoveredNodeId) return null;
+    return new Set([hoveredNodeId, ...(neighborMap.get(hoveredNodeId) ?? [])]);
+  }, [hoveredNodeId, neighborMap]);
+
+  const computedNodes: AvatarNodeType[] = useMemo(
     () =>
       data.nodes
         .filter((n) => !hiddenNodeIds.has(n.id))
         .map((n) => {
-          const pos = positions.get(n.id);
+          const pos = initialPositions.get(n.id);
           const highlighted = matchingNodeIds?.has(n.id) ?? false;
-          const dimmed = matchingNodeIds ? !highlighted : false;
+          const inHoverNeighborhood = hoveredNeighborhood?.has(n.id) ?? true;
+          const dimmed = (matchingNodeIds ? !highlighted : false) || !inHoverNeighborhood;
+          const emphasized = !!hoveredNeighborhood && inHoverNeighborhood && n.id !== hoveredNodeId;
           return {
             id: n.id,
             type: "avatar",
@@ -118,23 +145,39 @@ function GraphCanvas({ data }: { data: GraphData }) {
               avatar: n.avatar,
               dimmed,
               highlighted,
+              emphasized,
               collapsed: collapsedNodeIds.has(n.id),
               hasHiddenNeighbors: (totalDegree.get(n.id) ?? 0) > 0,
               onToggleCollapse: toggleCollapse,
             },
           } satisfies AvatarNodeType;
         }),
-    [data.nodes, positions, hiddenNodeIds, matchingNodeIds, collapsedNodeIds, totalDegree, toggleCollapse],
+    [
+      data.nodes,
+      initialPositions,
+      hiddenNodeIds,
+      matchingNodeIds,
+      hoveredNeighborhood,
+      hoveredNodeId,
+      collapsedNodeIds,
+      totalDegree,
+      toggleCollapse,
+    ],
   );
 
-  const edges: RelationshipEdgeType[] = useMemo(
+  const computedEdges: RelationshipEdgeType[] = useMemo(
     () =>
       data.edges
         .filter((e) => visibleEdgeIds.has(e.id))
         .map((e) => {
-          const dimmed = matchingNodeIds
-            ? !(matchingNodeIds.has(e.source) && matchingNodeIds.has(e.target))
-            : false;
+          const matchesSearch = matchingNodeIds
+            ? matchingNodeIds.has(e.source) && matchingNodeIds.has(e.target)
+            : true;
+          const touchesHovered = hoveredNodeId
+            ? e.source === hoveredNodeId || e.target === hoveredNodeId
+            : true;
+          const dimmed = !matchesSearch || !touchesHovered;
+          const emphasized = (!!hoveredNodeId && touchesHovered) || (!!matchingNodeIds && matchesSearch);
           return {
             id: e.id,
             type: "relationship",
@@ -146,11 +189,29 @@ function GraphCanvas({ data }: { data: GraphData }) {
               color: e.relationship_type.color,
               status: e.status,
               dimmed,
+              emphasized,
             },
           } satisfies RelationshipEdgeType;
         }),
-    [data.edges, visibleEdgeIds, matchingNodeIds],
+    [data.edges, visibleEdgeIds, matchingNodeIds, hoveredNodeId],
   );
+
+  // Merge rather than replace: keep whatever position a node is currently
+  // at (e.g. dragged by the user) and only seed brand-new nodes from the
+  // force layout.
+  useEffect(() => {
+    setNodes((current) => {
+      const currentById = new Map(current.map((n) => [n.id, n]));
+      return computedNodes.map((n) => {
+        const existing = currentById.get(n.id);
+        return existing ? { ...n, position: existing.position } : n;
+      });
+    });
+  }, [computedNodes, setNodes]);
+
+  useEffect(() => {
+    setEdges(computedEdges);
+  }, [computedEdges, setEdges]);
 
   useEffect(() => {
     if (!matchingNodeIds || matchingNodeIds.size === 0) return;
@@ -167,6 +228,14 @@ function GraphCanvas({ data }: { data: GraphData }) {
     setSelectedEdgeId(edge.id);
   }, []);
 
+  const onNodeMouseEnter: NodeMouseHandler<AvatarNodeType> = useCallback((_event, node) => {
+    setHoveredNodeId(node.id);
+  }, []);
+
+  const onNodeMouseLeave = useCallback(() => {
+    setHoveredNodeId(null);
+  }, []);
+
   const selectedEdge = selectedEdgeId ? (data.edges.find((e) => e.id === selectedEdgeId) ?? null) : null;
   const sourceNode = selectedEdge ? (data.nodes.find((n) => n.id === selectedEdge.source) ?? null) : null;
   const targetNode = selectedEdge ? (data.nodes.find((n) => n.id === selectedEdge.target) ?? null) : null;
@@ -176,10 +245,14 @@ function GraphCanvas({ data }: { data: GraphData }) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
         fitView
         minZoom={0.1}
         maxZoom={2}

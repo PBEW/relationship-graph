@@ -11,6 +11,7 @@ export interface AvatarNodeData extends Record<string, unknown> {
   avatar: string | null;
   dimmed: boolean;
   highlighted: boolean;
+  emphasized: boolean;
   collapsed: boolean;
   hasHiddenNeighbors: boolean;
   onToggleCollapse: (personId: string) => void;
@@ -19,7 +20,7 @@ export interface AvatarNodeData extends Record<string, unknown> {
 export type AvatarNodeType = Node<AvatarNodeData, "avatar">;
 
 export function AvatarNode({ data, selected }: NodeProps<AvatarNodeType>) {
-  const { displayName, nickname, avatar, dimmed, highlighted, collapsed, hasHiddenNeighbors } = data;
+  const { displayName, nickname, avatar, dimmed, highlighted, emphasized, collapsed, hasHiddenNeighbors } = data;
 
   return (
     <div
@@ -27,7 +28,8 @@ export function AvatarNode({ data, selected }: NodeProps<AvatarNodeType>) {
         "relative flex flex-col items-center gap-1 rounded-xl border bg-card px-3 py-2 shadow-sm transition-all",
         selected ? "border-primary ring-2 ring-primary" : "border-border",
         highlighted && "ring-2 ring-yellow-400",
-        dimmed && "opacity-25",
+        emphasized && !highlighted && "ring-2 ring-foreground/40 shadow-md",
+        dimmed && "opacity-20",
       )}
       style={{ width: 96 }}
     >
