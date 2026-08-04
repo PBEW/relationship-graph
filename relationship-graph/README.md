@@ -89,7 +89,7 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 
 - [x] **Phase 1** — Project initialization
 - [x] **Phase 2** — Database (models, indexes, constraints, migrations) — see [database/README.md](database/README.md)
-- [ ] **Phase 3** — Backend (repositories, services, schemas, API)
+- [x] **Phase 3** — Backend (repositories, services, schemas, API) — see [docs/API.md](docs/API.md)
 - [ ] **Phase 4** — Authentication (JWT)
 - [ ] **Phase 5** — Frontend layout (sidebar, search, dark mode)
 - [ ] **Phase 6** — Interactive graph (React Flow)

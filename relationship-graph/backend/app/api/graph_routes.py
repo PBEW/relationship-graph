@@ -1,0 +1,43 @@
+"""Graph endpoint — nodes/edges payload shaped for React Flow."""
+from flask import Blueprint, jsonify
+
+from app.repositories.person_repository import PersonRepository
+from app.repositories.relationship_repository import RelationshipRepository
+
+graph_bp = Blueprint("graph", __name__)
+person_repo = PersonRepository()
+relationship_repo = RelationshipRepository()
+
+
+@graph_bp.get("")
+def get_graph():
+    people = person_repo.list_all()
+    relationships = relationship_repo.list_all()
+
+    nodes = [
+        {
+            "id": str(person.id),
+            "display_name": person.display_name,
+            "nickname": person.nickname,
+            "avatar": person.avatar,
+        }
+        for person in people
+    ]
+
+    edges = [
+        {
+            "id": str(rel.id),
+            "source": str(rel.person_a_id),
+            "target": str(rel.person_b_id),
+            "status": rel.status,
+            "relationship_type": {
+                "id": str(rel.relationship_type.id),
+                "name": rel.relationship_type.name,
+                "color": rel.relationship_type.color,
+                "icon": rel.relationship_type.icon,
+            },
+        }
+        for rel in relationships
+    ]
+
+    return jsonify({"nodes": nodes, "edges": edges})

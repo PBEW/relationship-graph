@@ -1,7 +1,7 @@
 """Flask application factory."""
 import os
 
-from flask import Flask
+from flask import Flask, send_from_directory
 
 from app.config import get_config
 from app.extensions import cors, db, jwt, migrate
@@ -26,5 +26,9 @@ def create_app(env_name: str | None = None) -> Flask:
     from app.api import register_blueprints
 
     register_blueprints(app)
+
+    @app.get("/uploads/<path:filename>")
+    def uploaded_file(filename: str):
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
     return app
