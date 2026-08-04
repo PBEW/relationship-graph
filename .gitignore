@@ -23,8 +23,8 @@ instance/
 !.env.example
 
 # --- Uploads (user content, keep folder via .gitkeep) ---
-backend/uploads/*
-!backend/uploads/.gitkeep
+relationship-graph/backend/uploads/*
+!relationship-graph/backend/uploads/.gitkeep
 
 # --- Database ---
 *.sqlite3
