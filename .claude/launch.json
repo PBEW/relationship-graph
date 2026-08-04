@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "relationship-graph-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "relationship-graph/frontend", "run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "relationship-graph-backend",
+      "runtimeExecutable": "relationship-graph/backend/venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "flask", "--app", "wsgi.py", "run", "--port", "5000"],
+      "port": 5000
+    }
+  ]
+}

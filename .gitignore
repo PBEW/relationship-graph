@@ -1,0 +1,47 @@
+# --- Node / Frontend ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# --- Python / Backend ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+instance/
+
+# --- Environment secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Uploads (user content, keep folder via .gitkeep) ---
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# --- Database ---
+*.sqlite3
+*.db
+pgdata/
+
+# --- Docker ---
+docker/pgdata/
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# --- Build outputs ---
+build/
+coverage/
