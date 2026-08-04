@@ -2,7 +2,7 @@
 
 An interactive web app for mapping people and relationships in online communities (VRChat, Discord, gaming guilds, etc.) — search people, explore an interactive relationship graph, view profiles with timelines, and manage everything through an admin panel.
 
-> **Status:** Phase 1 (Project Initialization) complete. See [Roadmap](#roadmap) below.
+> **Status:** All 10 phases complete. See [Roadmap](#roadmap) and [Known Limitations](#known-limitations) below.
 
 ## Tech Stack
 
@@ -98,6 +98,25 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 - **schemas/** — Marshmallow request validation and response serialization.
 - **api/** — Flask blueprints; thin controllers that call services.
 
+## Testing
+
+**Backend** (pytest, 35 tests — auth, people, relationships, relationship types, dashboard, graph):
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+cp .env.example .env    # TEST_DATABASE_URL must point at a real Postgres database
+pytest
+```
+
+**Frontend** (Vitest + React Testing Library — utilities, hooks, and presentational components):
+
+```bash
+cd frontend
+npm test              # run once
+npm run test:watch    # watch mode
+```
+
 ## Roadmap
 
 - [x] **Phase 1** — Project initialization
@@ -109,8 +128,16 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 - [x] **Phase 7** — CRUD (profile page, admin panel)
 - [x] **Phase 8** — Dashboard + seed data — see [scripts/README.md](scripts/README.md)
 - [x] **Phase 9** — Optimization
-- [ ] **Phase 10** — Testing
+- [x] **Phase 10** — Testing
 
 ## API Documentation
 
-See [docs/API.md](docs/API.md) (populated from Phase 3 onward).
+See [docs/API.md](docs/API.md).
+
+## Known Limitations
+
+This project was built and verified in a dev environment without a local PostgreSQL or Docker installation available, so a few things are worth knowing before you rely on it:
+
+- **Backend correctness was verified against SQLite, not Postgres**, using a scratch compatibility shim (patching the Postgres-only `UUID` type and neutralizing the `~` regex `CHECK` constraint) that exists only in throwaway verification scripts — never committed. All migrations, models, and the pytest suite are written for Postgres and were reviewed carefully, but **run `flask db upgrade` and `pytest` against a real Postgres instance before depending on this in production.**
+- **JWT logout uses an in-memory revoked-token set** (`backend/app/services/auth_service.py`). This works correctly for a single process, but the production Dockerfile runs gunicorn with 4 workers — a token revoked on one worker stays valid on the other three. Fine for local dev or a single-worker deployment; swap in a shared store (e.g. Redis) before running multi-worker in production.
+- **Frontend E2E behavior was verified manually** (via a browser-automation tool driving the real running app against seeded data) rather than with a committed E2E test suite (e.g. Playwright/Cypress). The Vitest suite covers utilities/hooks/presentational components only — page-level and integration tests are a reasonable next addition.
