@@ -1,5 +1,102 @@
-# Database
+# Database Schema
 
-Schema design notes and ER diagram for the Relationship Graph database.
+PostgreSQL, managed via SQLAlchemy models (`backend/app/models/`) and Alembic migrations (`backend/migrations/`).
 
-Actual Alembic migrations live in `backend/migrations/` (created in Phase 2). This folder holds documentation only.
+## ER Diagram
+
+```mermaid
+erDiagram
+    PEOPLE ||--o{ RELATIONSHIPS : "person_a_id"
+    PEOPLE ||--o{ RELATIONSHIPS : "person_b_id"
+    RELATIONSHIP_TYPES ||--o{ RELATIONSHIPS : "relationship_type_id"
+
+    PEOPLE {
+        uuid id PK
+        string avatar
+        string display_name
+        string nickname
+        string vrchat_name
+        string discord
+        string steam
+        string twitter
+        string country
+        string gender
+        date birthday
+        text bio
+        datetime created_at
+        datetime updated_at
+    }
+
+    RELATIONSHIP_TYPES {
+        uuid id PK
+        string name UK
+        string color
+        string icon
+        text description
+    }
+
+    RELATIONSHIPS {
+        uuid id PK
+        uuid person_a_id FK
+        uuid person_b_id FK
+        uuid relationship_type_id FK
+        string status
+        date start_date
+        date end_date
+        text note
+        datetime created_at
+        datetime updated_at
+    }
+```
+
+## Tables
+
+### `people`
+One row per community member. `display_name`, `nickname`, `vrchat_name`, `discord`, `steam`, `twitter`, `country`, `gender` are all indexed for the search/filter features. `gender` is constrained to `male | female | non_binary | other | unspecified` (nullable — optional field).
+
+### `relationship_types`
+Lookup table for the 12 built-in relationship types, seeded by migration `73707af94cf9_seed_relationship_types`:
+
+| Name | Color | Icon (lucide) |
+|---|---|---|
+| Friend | `#06B6D4` | `users` |
+| Sibling | `#6366F1` | `users-round` |
+| Dating | `#EC4899` | `heart` |
+| Married | `#F43F5E` | `gem` |
+| Partner | `#A855F7` | `handshake` |
+| Ex | `#F97316` | `heart-crack` |
+| Enemy | `#DC2626` | `swords` |
+| Blocked | `#171717` | `ban` |
+| Muted | `#64748B` | `mic-off` |
+| Guild | `#16A34A` | `shield` |
+| Family | `#0EA5E9` | `home` |
+| Favorite | `#EAB308` | `star` |
+
+`color` is constrained to a `#RRGGBB` hex string via a `CHECK` constraint.
+
+### `relationships`
+An edge between two `people` rows (`person_a_id`, `person_b_id`), typed by `relationship_type_id`, with `status` (`active | ended`), an optional `start_date`/`end_date` (used to build each person's timeline), and a free-text `note`.
+
+Constraints:
+- `person_a_id <> person_b_id` — no self-relationships.
+- `status IN ('active', 'ended')`.
+- `end_date >= start_date` when both are set.
+- `ON DELETE CASCADE` from `people` — deleting a person removes their relationships.
+- `ON DELETE RESTRICT` from `relationship_types` — a type in use can't be deleted.
+
+Indexed on `person_a_id`, `person_b_id`, the `(person_a_id, person_b_id)` pair, `relationship_type_id`, and `status` to keep graph/profile queries fast.
+
+## Migrations
+
+```bash
+cd backend
+flask db upgrade          # apply all migrations
+flask db downgrade -1     # roll back one revision
+flask db history          # view the migration chain
+```
+
+Two migrations exist so far:
+1. `4c948b14b747_initial_schema` — creates `people`, `relationship_types`, `relationships` with all FKs/indexes/constraints.
+2. `73707af94cf9_seed_relationship_types` — inserts the 12 built-in relationship types.
+
+> **Note:** These migrations were hand-authored (not `--autogenerate`) because no local/Docker PostgreSQL instance was available in the dev environment used to build this phase. They were reviewed column-by-column against the SQLAlchemy models for correctness, but have **not yet been run against a real PostgreSQL database**. Run `flask db upgrade` (or `docker compose up`, which runs it automatically) against a real Postgres instance and confirm it succeeds before relying on this schema in Phase 3.

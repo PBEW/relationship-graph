@@ -19,6 +19,8 @@ def create_app(env_name: str | None = None) -> Flask:
     jwt.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
 
+    from app import models  # noqa: F401  (registers tables on db.metadata)
+
     register_error_handlers(app)
 
     from app.api import register_blueprints
