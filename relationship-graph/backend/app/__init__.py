@@ -6,6 +6,7 @@ from flask import Flask, send_from_directory
 from app.config import get_config
 from app.extensions import cors, db, jwt, migrate
 from app.utils.errors import register_error_handlers
+from app.utils.jwt_callbacks import register_jwt_callbacks
 
 
 def create_app(env_name: str | None = None) -> Flask:
@@ -17,6 +18,7 @@ def create_app(env_name: str | None = None) -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    register_jwt_callbacks(app, jwt)
     cors.init_app(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
 
     from app import models  # noqa: F401  (registers tables on db.metadata)

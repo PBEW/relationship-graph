@@ -45,6 +45,8 @@ docker compose up --build
 
 > Migrations run automatically (`flask db upgrade`) before the backend starts.
 
+Admin login (dev default — **change before deploying**, see `backend/.env.example`): username `admin`, password `admin`.
+
 ### Option B — Local development (no Docker)
 
 **Backend**
@@ -90,7 +92,7 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 - [x] **Phase 1** — Project initialization
 - [x] **Phase 2** — Database (models, indexes, constraints, migrations) — see [database/README.md](database/README.md)
 - [x] **Phase 3** — Backend (repositories, services, schemas, API) — see [docs/API.md](docs/API.md)
-- [ ] **Phase 4** — Authentication (JWT)
+- [x] **Phase 4** — Authentication (JWT)
 - [ ] **Phase 5** — Frontend layout (sidebar, search, dark mode)
 - [ ] **Phase 6** — Interactive graph (React Flow)
 - [ ] **Phase 7** — CRUD (profile page, admin panel)

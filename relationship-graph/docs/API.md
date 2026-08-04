@@ -4,13 +4,26 @@ Base URL: `/api` (e.g. `http://localhost:5000/api` in local dev, proxied through
 
 All responses are JSON. Errors follow `{"error": "message"}`, validation errors `{"error": "Validation failed", "details": {...}}`.
 
-> **Auth note:** Authentication (JWT) is implemented in Phase 4. Until then, all endpoints below are open. Once Phase 4 lands, `POST`/`PUT`/`DELETE` endpoints will require a valid access token (`Authorization: Bearer <token>`).
+> **Auth:** all `POST`/`PUT`/`DELETE` endpoints below (except `/api/auth/login`) require `Authorization: Bearer <access_token>`. `GET` endpoints are public/read-only.
 
 ## Health
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/health` | Liveness check. Returns `{"status": "ok"}`. |
+
+## Auth
+
+Single-admin app — there's no `User` table; credentials are `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` env vars (see `backend/.env.example`). Dev default: `admin` / `admin`.
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/login` | — | Body: `username`, `password`. Returns `{ access_token, refresh_token }`. Access token expires in 15 min (`JWT_ACCESS_TOKEN_EXPIRES_MINUTES`), refresh in 30 days. |
+| POST | `/api/auth/refresh` | refresh token | Returns a new `access_token`. |
+| POST | `/api/auth/logout` | access token | Revokes the presented access token (tracked in an in-memory blocklist — see caveat below). |
+| GET | `/api/auth/me` | access token | Returns `{ "username": "..." }` for the current token. |
+
+> **Caveat:** the logout blocklist is an in-memory Python `set`, which only works correctly for a single process. The production Dockerfile runs gunicorn with 4 workers, so a token revoked on one worker would still be valid on another. Fine for local dev / single-worker deployments; swap for a shared store (e.g. Redis) before running multi-worker in production. Flagged here for the Phase 9 optimization pass.
 
 ## People
 
@@ -81,4 +94,4 @@ Validation: `person_a_id` must differ from `person_b_id`; `end_date` (if set) mu
 
 ---
 
-Implemented and smoke-tested against SQLite (no local/Docker Postgres available in the dev environment) — full CRUD, search, pagination, validation errors, cascade delete, the in-use guard on relationship types, and the profile/timeline/dashboard/graph aggregations all verified working end-to-end. Not yet verified against real PostgreSQL (see `database/README.md`).
+Implemented and smoke-tested against SQLite (no local/Docker Postgres available in the dev environment) — full CRUD, search, pagination, validation errors, cascade delete, the in-use guard on relationship types, the full auth flow (login, bad password, missing/expired/revoked/wrong-type tokens, refresh, logout), and the profile/timeline/dashboard/graph aggregations all verified working end-to-end. Not yet verified against real PostgreSQL (see `database/README.md`).
