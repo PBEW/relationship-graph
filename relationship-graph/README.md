@@ -94,8 +94,8 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 - [x] **Phase 3** — Backend (repositories, services, schemas, API) — see [docs/API.md](docs/API.md)
 - [x] **Phase 4** — Authentication (JWT)
 - [x] **Phase 5** — Frontend layout (sidebar, search, dark mode)
-- [ ] **Phase 6** — Interactive graph (React Flow)
-- [ ] **Phase 7** — CRUD (profile page, admin panel)
+- [x] **Phase 6** — Interactive graph (React Flow)
+- [x] **Phase 7** — CRUD (profile page, admin panel)
 - [ ] **Phase 8** — Dashboard + seed data
 - [ ] **Phase 9** — Optimization
 - [ ] **Phase 10** — Testing

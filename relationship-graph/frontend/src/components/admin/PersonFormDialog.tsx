@@ -1,0 +1,326 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+
+import { getApiErrorMessage } from "@/api/client";
+import { PersonAvatar } from "@/components/people/PersonAvatar";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useCreatePerson, useUpdatePerson, useUploadAvatar } from "@/hooks/usePersonMutations";
+import type { Person } from "@/types";
+
+const GENDER_OPTIONS = ["male", "female", "non_binary", "other", "unspecified"] as const;
+
+const personFormSchema = z.object({
+  display_name: z.string().min(1, "Display name is required").max(120),
+  nickname: z.string().max(120).optional(),
+  vrchat_name: z.string().max(120).optional(),
+  discord: z.string().max(120).optional(),
+  steam: z.string().max(120).optional(),
+  twitter: z.string().max(120).optional(),
+  country: z.string().max(100).optional(),
+  gender: z.enum(GENDER_OPTIONS).optional(),
+  birthday: z.string().optional(),
+  bio: z.string().optional(),
+});
+
+type PersonFormValues = z.infer<typeof personFormSchema>;
+
+function toApiPayload(values: PersonFormValues) {
+  return {
+    display_name: values.display_name,
+    nickname: values.nickname || null,
+    vrchat_name: values.vrchat_name || null,
+    discord: values.discord || null,
+    steam: values.steam || null,
+    twitter: values.twitter || null,
+    country: values.country || null,
+    gender: values.gender || null,
+    birthday: values.birthday || null,
+    bio: values.bio || null,
+  };
+}
+
+function personToFormValues(person: Person | null): PersonFormValues {
+  return {
+    display_name: person?.display_name ?? "",
+    nickname: person?.nickname ?? "",
+    vrchat_name: person?.vrchat_name ?? "",
+    discord: person?.discord ?? "",
+    steam: person?.steam ?? "",
+    twitter: person?.twitter ?? "",
+    country: person?.country ?? "",
+    gender: (person?.gender as PersonFormValues["gender"]) ?? undefined,
+    birthday: person?.birthday ?? "",
+    bio: person?.bio ?? "",
+  };
+}
+
+interface PersonFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  person: Person | null;
+}
+
+export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialogProps) {
+  const isEditing = !!person;
+  const createPerson = useCreatePerson();
+  const updatePerson = useUpdatePerson();
+  const uploadAvatar = useUploadAvatar();
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const form = useForm<PersonFormValues>({
+    resolver: zodResolver(personFormSchema),
+    defaultValues: personToFormValues(person),
+  });
+
+  useEffect(() => {
+    if (open) {
+      form.reset(personToFormValues(person));
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, person]);
+
+  const isSubmitting = createPerson.isPending || updatePerson.isPending || uploadAvatar.isPending;
+
+  const onSubmit = async (values: PersonFormValues) => {
+    try {
+      const payload = toApiPayload(values);
+      let personId = person?.id;
+
+      if (isEditing && personId) {
+        await updatePerson.mutateAsync({ id: personId, input: payload });
+      } else {
+        const created = await createPerson.mutateAsync(payload);
+        personId = created.id;
+      }
+
+      if (avatarFile && personId) {
+        await uploadAvatar.mutateAsync({ id: personId, file: avatarFile });
+      }
+
+      toast.success(isEditing ? "Person updated" : "Person created");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err));
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? "Edit Person" : "Add Person"}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? "Update this person's details." : "Add a new person to the graph."}
+          </DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="flex items-center gap-4">
+              <PersonAvatar
+                avatar={avatarPreview ?? person?.avatar ?? null}
+                displayName={form.watch("display_name") || "?"}
+                className="size-16"
+              />
+              <div>
+                <Input
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setAvatarFile(file);
+                    setAvatarPreview(file ? URL.createObjectURL(file) : null);
+                  }}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, GIF, or WebP, up to 5MB.</p>
+              </div>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="display_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Display Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="nickname"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nickname</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {GENDER_OPTIONS.map((g) => (
+                          <SelectItem key={g} value={g}>
+                            {g.replace("_", "-")}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="vrchat_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>VRChat Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="discord"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Discord</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="steam"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Steam</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="twitter"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Twitter</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="birthday"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Birthday</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="bio"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bio</FormLabel>
+                  <FormControl>
+                    <Textarea rows={3} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : isEditing ? "Save changes" : "Create"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

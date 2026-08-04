@@ -124,7 +124,10 @@ export interface GraphEdge {
   source: string;
   target: string;
   status: RelationshipStatus;
-  relationship_type: Pick<RelationshipType, "id" | "name" | "color" | "icon">;
+  start_date: string | null;
+  end_date: string | null;
+  note: string | null;
+  relationship_type: RelationshipType;
 }
 
 export interface GraphData {

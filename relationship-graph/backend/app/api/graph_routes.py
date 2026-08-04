@@ -30,11 +30,15 @@ def get_graph():
             "source": str(rel.person_a_id),
             "target": str(rel.person_b_id),
             "status": rel.status,
+            "start_date": rel.start_date.isoformat() if rel.start_date else None,
+            "end_date": rel.end_date.isoformat() if rel.end_date else None,
+            "note": rel.note,
             "relationship_type": {
                 "id": str(rel.relationship_type.id),
                 "name": rel.relationship_type.name,
                 "color": rel.relationship_type.color,
                 "icon": rel.relationship_type.icon,
+                "description": rel.relationship_type.description,
             },
         }
         for rel in relationships

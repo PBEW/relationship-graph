@@ -86,6 +86,9 @@ Validation: `person_a_id` must differ from `person_b_id`; `end_date` (if set) mu
 |---|---|---|
 | GET | `/api/graph` | All people/relationships in a flat `{ nodes, edges }` shape, ready for React Flow. |
 
+`nodes[]`: `id`, `display_name`, `nickname`, `avatar`.
+`edges[]`: `id`, `source`, `target`, `status`, `start_date`, `end_date`, `note`, `relationship_type` (full object, including `description`) — enough to render the relationship-detail popup without a second request.
+
 ## Uploads
 
 | Method | Path | Description |
