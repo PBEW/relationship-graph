@@ -32,6 +32,13 @@ import type { Person } from "@/types";
 
 const GENDER_VALUES = ["male", "female", "non_binary", "other", "unspecified"] as const;
 
+const VRCHAT_ID_PATTERN = /usr_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+function extractVrchatId(value: string): string {
+  const match = value.match(VRCHAT_ID_PATTERN);
+  return match ? match[0] : value.trim();
+}
+
 const personFormSchema = z.object({
   display_name: z.string().min(1, "กรุณากรอกชื่อที่แสดง").max(120),
   nickname: z.string().max(120).optional(),
@@ -224,7 +231,14 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
                   <FormItem>
                     <FormLabel>ชื่อ VRChat</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input
+                        {...field}
+                        placeholder="ชื่อ หรือวางลิงก์โปรไฟล์ VRChat"
+                        onBlur={(e) => {
+                          field.onChange(extractVrchatId(e.target.value));
+                          field.onBlur();
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
