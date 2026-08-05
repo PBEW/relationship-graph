@@ -62,7 +62,7 @@ export function AdminRelationshipsSection() {
     if (!deletingRelationship) return;
     try {
       await deleteRelationship.mutateAsync(deletingRelationship.id);
-      toast.success("Relationship deleted");
+      toast.success("ลบความสัมพันธ์แล้ว");
       setDeletingRelationship(null);
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -75,10 +75,10 @@ export function AdminRelationshipsSection() {
         <div className="flex flex-wrap gap-2">
           <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="All types" />
+              <SelectValue placeholder="ทุกประเภท" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All types</SelectItem>
+              <SelectItem value="all">ทุกประเภท</SelectItem>
               {types?.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
                   {t.name}
@@ -88,35 +88,35 @@ export function AdminRelationshipsSection() {
           </Select>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as RelationshipStatus | "all"); setPage(1); }}>
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="All statuses" />
+              <SelectValue placeholder="ทุกสถานะ" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="ended">Ended</SelectItem>
+              <SelectItem value="all">ทุกสถานะ</SelectItem>
+              <SelectItem value="active">คบกันอยู่</SelectItem>
+              <SelectItem value="ended">เลิกกันแล้ว</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <Button onClick={openCreate}>
           <Plus className="size-4" />
-          Add Relationship
+          เพิ่มความสัมพันธ์
         </Button>
       </div>
 
       {isLoading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : !data || data.items.length === 0 ? (
-        <EmptyState icon={Heart} title="No relationships found" />
+        <EmptyState icon={Heart} title="ไม่พบความสัมพันธ์" />
       ) : (
         <div className="rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>People</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="hidden sm:table-cell">Status</TableHead>
-                <TableHead className="hidden md:table-cell">Dates</TableHead>
-                <TableHead className="w-24 text-right">Actions</TableHead>
+                <TableHead>คู่ความสัมพันธ์</TableHead>
+                <TableHead>ประเภท</TableHead>
+                <TableHead className="hidden sm:table-cell">สถานะ</TableHead>
+                <TableHead className="hidden md:table-cell">ช่วงเวลา</TableHead>
+                <TableHead className="w-24 text-right">การจัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -144,20 +144,22 @@ export function AdminRelationshipsSection() {
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    <Badge variant={rel.status === "active" ? "default" : "secondary"}>{rel.status}</Badge>
+                    <Badge variant={rel.status === "active" ? "default" : "secondary"}>
+                      {rel.status === "active" ? "คบกันอยู่" : "เลิกกันแล้ว"}
+                    </Badge>
                   </TableCell>
                   <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
-                    {rel.start_date ?? "?"} — {rel.end_date ?? "present"}
+                    {rel.start_date ?? "?"} — {rel.end_date ?? "ปัจจุบัน"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(rel)} aria-label="Edit">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(rel)} aria-label="แก้ไข">
                       <Pencil className="size-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeletingRelationship(rel)}
-                      aria-label="Delete"
+                      aria-label="ลบ"
                     >
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
@@ -178,9 +180,9 @@ export function AdminRelationshipsSection() {
       <ConfirmDialog
         open={!!deletingRelationship}
         onOpenChange={(open) => !open && setDeletingRelationship(null)}
-        title="Delete relationship?"
-        description="This will permanently delete this relationship. This can't be undone."
-        confirmLabel="Delete"
+        title="ลบความสัมพันธ์นี้หรือไม่?"
+        description="การลบจะไม่สามารถกู้คืนได้"
+        confirmLabel="ลบ"
         destructive
         isLoading={deleteRelationship.isPending}
         onConfirm={handleDelete}

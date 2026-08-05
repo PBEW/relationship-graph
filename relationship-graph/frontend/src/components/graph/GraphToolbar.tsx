@@ -18,10 +18,10 @@ export function GraphToolbar({ search, onSearchChange, matchCount }: GraphToolba
       <Panel position="top-left" className="!m-3">
         <Card className="w-64 gap-2 py-3">
           <CardContent className="space-y-1 px-3">
-            <SearchBar value={search} onChange={onSearchChange} placeholder="Search graph..." />
+            <SearchBar value={search} onChange={onSearchChange} placeholder="ค้นหาในกราฟ..." />
             {search && (
               <p className="text-xs text-muted-foreground">
-                {matchCount} match{matchCount === 1 ? "" : "es"}
+                พบ {matchCount} คน
               </p>
             )}
           </CardContent>

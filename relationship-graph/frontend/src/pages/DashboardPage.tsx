@@ -10,7 +10,7 @@ export function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-6">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <h1 className="text-2xl font-semibold">แดชบอร์ด</h1>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
         <Card>
@@ -18,7 +18,7 @@ export function DashboardPage() {
             <div className="text-3xl font-semibold">
               {isLoading ? <Skeleton className="h-9 w-16" /> : data?.total_people}
             </div>
-            <div className="text-sm text-muted-foreground">Total People</div>
+            <div className="text-sm text-muted-foreground">จำนวนคนทั้งหมด</div>
           </CardContent>
         </Card>
         <Card>
@@ -26,7 +26,7 @@ export function DashboardPage() {
             <div className="text-3xl font-semibold">
               {isLoading ? <Skeleton className="h-9 w-16" /> : data?.total_relationships}
             </div>
-            <div className="text-sm text-muted-foreground">Total Relationships</div>
+            <div className="text-sm text-muted-foreground">จำนวนความสัมพันธ์ทั้งหมด</div>
           </CardContent>
         </Card>
       </div>
@@ -34,7 +34,7 @@ export function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Most Connected</CardTitle>
+            <CardTitle className="text-base">เชื่อมโยงมากที่สุด</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
@@ -56,7 +56,7 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Recently Added</CardTitle>
+            <CardTitle className="text-base">เพิ่มล่าสุด</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
@@ -76,7 +76,7 @@ export function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Relationship Distribution</CardTitle>
+          <CardTitle className="text-base">สัดส่วนประเภทความสัมพันธ์</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {isLoading && <Skeleton className="h-8 w-full" />}

@@ -19,8 +19,8 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+  username: z.string().min(1, "กรุณากรอกชื่อผู้ใช้"),
+  password: z.string().min(1, "กรุณากรอกรหัสผ่าน"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -56,8 +56,8 @@ export function LoginPage() {
     <div className="flex h-full items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Admin Login</CardTitle>
-          <CardDescription>Sign in to manage people and relationships.</CardDescription>
+          <CardTitle>เข้าสู่ระบบแอดมิน</CardTitle>
+          <CardDescription>เข้าสู่ระบบเพื่อจัดการข้อมูลคนและความสัมพันธ์</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -67,7 +67,7 @@ export function LoginPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>ชื่อผู้ใช้</FormLabel>
                     <FormControl>
                       <Input autoComplete="username" {...field} />
                     </FormControl>
@@ -80,7 +80,7 @@ export function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>รหัสผ่าน</FormLabel>
                     <FormControl>
                       <Input type="password" autoComplete="current-password" {...field} />
                     </FormControl>
@@ -90,7 +90,7 @@ export function LoginPage() {
               />
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Signing in..." : "Sign in"}
+                {form.formState.isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
               </Button>
             </form>
           </Form>

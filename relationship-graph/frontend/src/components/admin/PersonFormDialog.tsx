@@ -27,19 +27,20 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreatePerson, useUpdatePerson, useUploadAvatar } from "@/hooks/usePersonMutations";
+import { GENDER_OPTIONS } from "@/lib/genderLabels";
 import type { Person } from "@/types";
 
-const GENDER_OPTIONS = ["male", "female", "non_binary", "other", "unspecified"] as const;
+const GENDER_VALUES = ["male", "female", "non_binary", "other", "unspecified"] as const;
 
 const personFormSchema = z.object({
-  display_name: z.string().min(1, "Display name is required").max(120),
+  display_name: z.string().min(1, "กรุณากรอกชื่อที่แสดง").max(120),
   nickname: z.string().max(120).optional(),
   vrchat_name: z.string().max(120).optional(),
   discord: z.string().max(120).optional(),
   steam: z.string().max(120).optional(),
   twitter: z.string().max(120).optional(),
   country: z.string().max(100).optional(),
-  gender: z.enum(GENDER_OPTIONS).optional(),
+  gender: z.enum(GENDER_VALUES).optional(),
   birthday: z.string().optional(),
   bio: z.string().optional(),
 });
@@ -122,7 +123,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
         await uploadAvatar.mutateAsync({ id: personId, file: avatarFile });
       }
 
-      toast.success(isEditing ? "Person updated" : "Person created");
+      toast.success(isEditing ? "แก้ไขข้อมูลคนแล้ว" : "เพิ่มคนแล้ว");
       onOpenChange(false);
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -133,9 +134,9 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Person" : "Add Person"}</DialogTitle>
+          <DialogTitle>{isEditing ? "แก้ไขข้อมูลคน" : "เพิ่มคน"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update this person's details." : "Add a new person to the graph."}
+            {isEditing ? "แก้ไขรายละเอียดของคนนี้" : "เพิ่มคนใหม่เข้าไปในกราฟ"}
           </DialogDescription>
         </DialogHeader>
 
@@ -157,7 +158,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
                     setAvatarPreview(file ? URL.createObjectURL(file) : null);
                   }}
                 />
-                <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, GIF, or WebP, up to 5MB.</p>
+                <p className="mt-1 text-xs text-muted-foreground">PNG, JPG, GIF หรือ WebP ไม่เกิน 5MB</p>
               </div>
             </div>
 
@@ -166,7 +167,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
               name="display_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Display Name</FormLabel>
+                  <FormLabel>ชื่อที่แสดง</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
@@ -181,7 +182,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
                 name="nickname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nickname</FormLabel>
+                    <FormLabel>ชื่อเล่น</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -194,17 +195,17 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
                 name="gender"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gender</FormLabel>
+                    <FormLabel>เพศ</FormLabel>
                     <Select value={field.value ?? ""} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select..." />
+                          <SelectValue placeholder="เลือก..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {GENDER_OPTIONS.map((g) => (
-                          <SelectItem key={g} value={g}>
-                            {g.replace("_", "-")}
+                          <SelectItem key={g.value} value={g.value}>
+                            {g.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -221,7 +222,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
                 name="vrchat_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>VRChat Name</FormLabel>
+                    <FormLabel>ชื่อ VRChat</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -273,7 +274,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
                 name="country"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Country</FormLabel>
+                    <FormLabel>ประเทศ</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -286,7 +287,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
                 name="birthday"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Birthday</FormLabel>
+                    <FormLabel>วันเกิด</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -301,7 +302,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
               name="bio"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bio</FormLabel>
+                  <FormLabel>ประวัติย่อ</FormLabel>
                   <FormControl>
                     <Textarea rows={3} {...field} />
                   </FormControl>
@@ -312,10 +313,10 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                ยกเลิก
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : isEditing ? "Save changes" : "Create"}
+                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "สร้าง"}
               </Button>
             </DialogFooter>
           </form>

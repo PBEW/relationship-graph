@@ -35,21 +35,21 @@ import type { Relationship } from "@/types";
 
 const relationshipFormSchema = z
   .object({
-    person_a_id: z.string().uuid("Choose a person"),
-    person_b_id: z.string().uuid("Choose a person"),
-    relationship_type_id: z.string().uuid("Choose a relationship type"),
+    person_a_id: z.string().uuid("เลือกคนคนหนึ่ง"),
+    person_b_id: z.string().uuid("เลือกคนคนหนึ่ง"),
+    relationship_type_id: z.string().uuid("เลือกประเภทความสัมพันธ์"),
     status: z.enum(["active", "ended"]),
     start_date: z.string().optional(),
     end_date: z.string().optional(),
     note: z.string().optional(),
   })
   .refine((data) => data.person_a_id !== data.person_b_id, {
-    message: "The two people must be different",
+    message: "ต้องเป็นคนละคนกัน",
     path: ["person_b_id"],
   })
   .refine(
     (data) => !data.start_date || !data.end_date || data.end_date >= data.start_date,
-    { message: "End date must be on or after start date", path: ["end_date"] },
+    { message: "วันสิ้นสุดต้องไม่ก่อนวันเริ่มต้น", path: ["end_date"] },
   );
 
 type RelationshipFormValues = z.infer<typeof relationshipFormSchema>;
@@ -113,7 +113,7 @@ export function RelationshipFormDialog({
       } else {
         await createRelationship.mutateAsync(payload);
       }
-      toast.success(isEditing ? "Relationship updated" : "Relationship created");
+      toast.success(isEditing ? "แก้ไขความสัมพันธ์แล้ว" : "เพิ่มความสัมพันธ์แล้ว");
       onOpenChange(false);
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -127,9 +127,9 @@ export function RelationshipFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Relationship" : "Add Relationship"}</DialogTitle>
+          <DialogTitle>{isEditing ? "แก้ไขความสัมพันธ์" : "เพิ่มความสัมพันธ์"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update this relationship." : "Connect two people with a relationship."}
+            {isEditing ? "แก้ไขความสัมพันธ์นี้" : "เชื่อมความสัมพันธ์ระหว่างคนสองคน"}
           </DialogDescription>
         </DialogHeader>
 
@@ -141,7 +141,7 @@ export function RelationshipFormDialog({
                 name="person_a_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Person A</FormLabel>
+                    <FormLabel>คนที่ 1</FormLabel>
                     <PersonCombobox value={field.value} onChange={field.onChange} excludeId={personB} />
                     <FormMessage />
                   </FormItem>
@@ -152,7 +152,7 @@ export function RelationshipFormDialog({
                 name="person_b_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Person B</FormLabel>
+                    <FormLabel>คนที่ 2</FormLabel>
                     <PersonCombobox value={field.value} onChange={field.onChange} excludeId={personA} />
                     <FormMessage />
                   </FormItem>
@@ -166,11 +166,11 @@ export function RelationshipFormDialog({
                 name="relationship_type_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Type</FormLabel>
+                    <FormLabel>ประเภท</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select..." />
+                          <SelectValue placeholder="เลือก..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -194,7 +194,7 @@ export function RelationshipFormDialog({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel>สถานะ</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger className="w-full">
@@ -202,8 +202,8 @@ export function RelationshipFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="ended">Ended</SelectItem>
+                        <SelectItem value="active">คบกันอยู่</SelectItem>
+                        <SelectItem value="ended">เลิกกันแล้ว</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -218,7 +218,7 @@ export function RelationshipFormDialog({
                 name="start_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Date</FormLabel>
+                    <FormLabel>วันที่เริ่ม</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -231,7 +231,7 @@ export function RelationshipFormDialog({
                 name="end_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Date</FormLabel>
+                    <FormLabel>วันที่สิ้นสุด</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -246,7 +246,7 @@ export function RelationshipFormDialog({
               name="note"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Note</FormLabel>
+                  <FormLabel>บันทึกเพิ่มเติม</FormLabel>
                   <FormControl>
                     <Textarea rows={2} {...field} />
                   </FormControl>
@@ -257,10 +257,10 @@ export function RelationshipFormDialog({
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                ยกเลิก
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : isEditing ? "Save changes" : "Create"}
+                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "สร้าง"}
               </Button>
             </DialogFooter>
           </form>

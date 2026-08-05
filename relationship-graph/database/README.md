@@ -57,20 +57,20 @@ One row per community member. `display_name`, `nickname`, `vrchat_name`, `discor
 ### `relationship_types`
 Lookup table for the 12 built-in relationship types, seeded by migration `73707af94cf9_seed_relationship_types`:
 
-| Name | Color | Icon (lucide) |
-|---|---|---|
-| Friend | `#06B6D4` | `users` |
-| Sibling | `#6366F1` | `users-round` |
-| Dating | `#EC4899` | `heart` |
-| Married | `#F43F5E` | `gem` |
-| Partner | `#A855F7` | `handshake` |
-| Ex | `#F97316` | `heart-crack` |
-| Enemy | `#DC2626` | `swords` |
-| Blocked | `#171717` | `ban` |
-| Muted | `#64748B` | `mic-off` |
-| Guild | `#16A34A` | `shield` |
-| Family | `#0EA5E9` | `home` |
-| Favorite | `#EAB308` | `star` |
+| Name | Meaning | Color | Icon (lucide) |
+|---|---|---|---|
+| เพื่อน | Friend | `#06B6D4` | `users` |
+| พี่น้อง | Sibling | `#6366F1` | `users-round` |
+| เป็นแฟนกัน | Dating | `#EC4899` | `heart` |
+| แต่งงานแล้ว | Married | `#F43F5E` | `gem` |
+| คู่ชีวิต | Partner | `#A855F7` | `handshake` |
+| แฟนเก่า | Ex | `#F97316` | `heart-crack` |
+| ศัตรู | Enemy | `#DC2626` | `swords` |
+| บล็อก | Blocked | `#171717` | `ban` |
+| ปิดเสียง | Muted | `#64748B` | `mic-off` |
+| กิลด์ | Guild | `#16A34A` | `shield` |
+| ครอบครัว | Family | `#0EA5E9` | `home` |
+| คนโปรด | Favorite | `#EAB308` | `star` |
 
 `color` is constrained to a `#RRGGBB` hex string via a `CHECK` constraint.
 

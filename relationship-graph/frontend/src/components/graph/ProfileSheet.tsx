@@ -1,16 +1,19 @@
-import { Cake, ExternalLink, Globe } from "lucide-react";
+import { Cake, ExternalLink, Globe, Plus } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
+import { RelationshipFormDialog } from "@/components/admin/RelationshipFormDialog";
 import { PersonAvatar } from "@/components/people/PersonAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/context/AuthContext";
 import { usePersonProfile } from "@/hooks/usePersonProfile";
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString(undefined, {
+  return new Date(dateStr).toLocaleDateString("th-TH", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -25,12 +28,14 @@ interface ProfileSheetProps {
 
 export function ProfileSheet({ personId, onClose, onSelectPerson }: ProfileSheetProps) {
   const { data, isLoading } = usePersonProfile(personId ?? undefined);
+  const { isAuthenticated } = useAuth();
+  const [addRelationshipOpen, setAddRelationshipOpen] = useState(false);
 
   return (
     <Sheet open={!!personId} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Profile</SheetTitle>
+          <SheetTitle>โปรไฟล์</SheetTitle>
         </SheetHeader>
 
         {isLoading && (
@@ -80,16 +85,24 @@ export function ProfileSheet({ personId, onClose, onSelectPerson }: ProfileSheet
             <Button asChild size="sm" variant="outline" className="w-full">
               <Link to={`/people/${data.person.id}`}>
                 <ExternalLink className="size-3.5" />
-                View full profile
+                ดูโปรไฟล์แบบเต็ม
               </Link>
             </Button>
 
             <Separator />
 
             <div>
-              <h3 className="mb-2 text-sm font-medium">
-                Relationships ({data.relationships.length})
-              </h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-medium">
+                  ความสัมพันธ์ ({data.relationships.length})
+                </h3>
+                {isAuthenticated && (
+                  <Button size="sm" variant="ghost" onClick={() => setAddRelationshipOpen(true)}>
+                    <Plus className="size-3.5" />
+                    เพิ่ม
+                  </Button>
+                )}
+              </div>
               <div className="space-y-1.5">
                 {data.relationships.map((rel) => {
                   const other = rel.person_a_id === data.person.id ? rel.person_b : rel.person_a;
@@ -120,6 +133,15 @@ export function ProfileSheet({ personId, onClose, onSelectPerson }: ProfileSheet
               </div>
             </div>
           </div>
+        )}
+
+        {data && (
+          <RelationshipFormDialog
+            open={addRelationshipOpen}
+            onOpenChange={setAddRelationshipOpen}
+            relationship={null}
+            defaultPersonId={data.person.id}
+          />
         )}
       </SheetContent>
     </Sheet>

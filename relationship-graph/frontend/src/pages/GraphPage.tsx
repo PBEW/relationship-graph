@@ -293,7 +293,7 @@ export function GraphPage() {
   if (isError || !data) {
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <EmptyState icon={Share2} title="Couldn't load the graph" description="Try refreshing the page." />
+        <EmptyState icon={Share2} title="โหลดกราฟไม่สำเร็จ" description="ลองรีเฟรชหน้านี้อีกครั้ง" />
       </div>
     );
   }
@@ -301,7 +301,7 @@ export function GraphPage() {
   if (data.nodes.length === 0) {
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <EmptyState icon={Share2} title="No people yet" description="Add people to see the relationship graph." />
+        <EmptyState icon={Share2} title="ยังไม่มีข้อมูลคน" description="เพิ่มคนเพื่อดูกราฟความสัมพันธ์" />
       </div>
     );
   }

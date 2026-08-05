@@ -42,7 +42,7 @@ describe('SearchBar', () => {
 
   it('does not show a clear button when empty', () => {
     render(<SearchBar value="" onChange={() => {}} />);
-    expect(screen.queryByLabelText('Clear search')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('ล้างการค้นหา')).not.toBeInTheDocument();
   });
 
   it('clears the value when the clear button is clicked', async () => {
@@ -50,7 +50,7 @@ describe('SearchBar', () => {
     const onChange = vi.fn();
     render(<SearchBar value="something" onChange={onChange} />);
 
-    await user.click(screen.getByLabelText('Clear search'));
+    await user.click(screen.getByLabelText('ล้างการค้นหา'));
 
     expect(onChange).toHaveBeenCalledWith('');
   });

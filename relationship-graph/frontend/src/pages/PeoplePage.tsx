@@ -15,15 +15,8 @@ import {
 } from "@/components/ui/select";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePeople } from "@/hooks/usePeople";
+import { GENDER_OPTIONS } from "@/lib/genderLabels";
 import type { Gender } from "@/types";
-
-const GENDER_OPTIONS: { value: Gender; label: string }[] = [
-  { value: "male", label: "Male" },
-  { value: "female", label: "Female" },
-  { value: "non_binary", label: "Non-binary" },
-  { value: "other", label: "Other" },
-  { value: "unspecified", label: "Unspecified" },
-];
 
 export function PeoplePage() {
   const [search, setSearch] = useState("");
@@ -41,7 +34,7 @@ export function PeoplePage() {
   return (
     <div className="mx-auto max-w-5xl p-4 md:p-6">
       <div className="mb-6 flex flex-col gap-3">
-        <h1 className="text-2xl font-semibold">People</h1>
+        <h1 className="text-2xl font-semibold">รายชื่อคน</h1>
         <div className="flex flex-col gap-2 sm:flex-row">
           <SearchBar
             value={search}
@@ -49,6 +42,7 @@ export function PeoplePage() {
               setSearch(v);
               setPage(1);
             }}
+            placeholder="ค้นหาคน..."
             className="sm:max-w-sm"
           />
           <Select
@@ -59,10 +53,10 @@ export function PeoplePage() {
             }}
           >
             <SelectTrigger className="sm:w-48">
-              <SelectValue placeholder="All genders" />
+              <SelectValue placeholder="ทุกเพศ" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All genders</SelectItem>
+              <SelectItem value="all">ทุกเพศ</SelectItem>
               {GENDER_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -82,8 +76,8 @@ export function PeoplePage() {
       ) : !data || data.items.length === 0 ? (
         <EmptyState
           icon={UsersRound}
-          title="No people found"
-          description="Try a different search or filter."
+          title="ไม่พบข้อมูลคน"
+          description="ลองค้นหาหรือปรับตัวกรองใหม่"
         />
       ) : (
         <div

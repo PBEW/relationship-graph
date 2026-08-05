@@ -51,7 +51,7 @@ export function AvatarNode({ data, selected }: NodeProps<AvatarNodeType>) {
             data.onToggleCollapse(data.personId);
           }}
           className="nodrag nopan absolute -bottom-2 flex size-5 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground"
-          title={collapsed ? "Expand connections" : "Collapse connections"}
+          title={collapsed ? "ขยายความเชื่อมโยง" : "ย่อความเชื่อมโยง"}
         >
           {collapsed ? <ChevronsUpDown className="size-3" /> : <ChevronsDownUp className="size-3" />}
         </button>

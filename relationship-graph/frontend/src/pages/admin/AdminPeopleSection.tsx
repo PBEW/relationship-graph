@@ -69,24 +69,24 @@ export function AdminPeopleSection() {
         />
         <Button onClick={openCreate}>
           <Plus className="size-4" />
-          Add Person
+          เพิ่มคน
         </Button>
       </div>
 
       {isLoading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : !data || data.items.length === 0 ? (
-        <EmptyState icon={UsersRound} title="No people found" />
+        <EmptyState icon={UsersRound} title="ไม่พบข้อมูลคน" />
       ) : (
         <div className="rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Person</TableHead>
+                <TableHead>คน</TableHead>
                 <TableHead className="hidden sm:table-cell">VRChat</TableHead>
                 <TableHead className="hidden sm:table-cell">Discord</TableHead>
-                <TableHead className="hidden md:table-cell">Country</TableHead>
-                <TableHead className="w-24 text-right">Actions</TableHead>
+                <TableHead className="hidden md:table-cell">ประเทศ</TableHead>
+                <TableHead className="w-24 text-right">การจัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -107,14 +107,14 @@ export function AdminPeopleSection() {
                   <TableCell className="hidden sm:table-cell">{person.discord ?? "—"}</TableCell>
                   <TableCell className="hidden md:table-cell">{person.country ?? "—"}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(person)} aria-label="Edit">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(person)} aria-label="แก้ไข">
                       <Pencil className="size-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeletingPerson(person)}
-                      aria-label="Delete"
+                      aria-label="ลบ"
                     >
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
@@ -135,9 +135,9 @@ export function AdminPeopleSection() {
       <ConfirmDialog
         open={!!deletingPerson}
         onOpenChange={(open) => !open && setDeletingPerson(null)}
-        title="Delete person?"
-        description={`This will permanently delete ${deletingPerson?.display_name ?? "this person"} and all of their relationships. This can't be undone.`}
-        confirmLabel="Delete"
+        title="ลบคนนี้หรือไม่?"
+        description={`การลบ ${deletingPerson?.display_name ?? "คนนี้"} จะลบความสัมพันธ์ทั้งหมดของเขาไปด้วย และไม่สามารถกู้คืนได้`}
+        confirmLabel="ลบ"
         destructive
         isLoading={deletePerson.isPending}
         onConfirm={handleDelete}

@@ -22,13 +22,13 @@ export function Pager({ page, pages, hasPrev, hasNext, onPageChange }: PagerProp
         onClick={() => onPageChange(page - 1)}
       >
         <ChevronLeft className="size-4" />
-        Previous
+        ก่อนหน้า
       </Button>
       <span className="text-sm text-muted-foreground">
-        Page {page} of {pages}
+        หน้า {page} จาก {pages}
       </span>
       <Button variant="outline" size="sm" disabled={!hasNext} onClick={() => onPageChange(page + 1)}>
-        Next
+        ถัดไป
         <ChevronRight className="size-4" />
       </Button>
     </div>

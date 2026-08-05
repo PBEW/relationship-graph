@@ -1,6 +1,7 @@
-import { LayoutDashboard, LogIn, LogOut, Share2, ShieldCheck, Users } from "lucide-react";
+import { LayoutDashboard, LogIn, LogOut, ShieldCheck, Users, Share2 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
+import { Logo } from "@/components/layout/Logo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -8,10 +9,10 @@ import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/people", label: "People", icon: Users, end: false },
-  { to: "/graph", label: "Graph", icon: Share2, end: false },
-  { to: "/admin", label: "Admin", icon: ShieldCheck, end: false },
+  { to: "/", label: "แดชบอร์ด", icon: LayoutDashboard, end: true },
+  { to: "/people", label: "รายชื่อคน", icon: Users, end: false },
+  { to: "/graph", label: "กราฟความสัมพันธ์", icon: Share2, end: false },
+  { to: "/admin", label: "จัดการข้อมูล", icon: ShieldCheck, end: false },
 ];
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -20,8 +21,8 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 px-4 py-4">
-        <Share2 className="size-6 text-primary" />
-        <span className="text-lg font-semibold">Relationship Graph</span>
+        <Logo className="size-8 shrink-0" />
+        <span className="text-lg font-semibold">3 ชั่วโมงไร้ค่า</span>
       </div>
 
       <Separator />
@@ -54,7 +55,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         {isAuthenticated ? (
           <>
             <span className="truncate text-sm text-muted-foreground">{username}</span>
-            <Button variant="ghost" size="icon" onClick={() => void logout()} aria-label="Log out">
+            <Button variant="ghost" size="icon" onClick={() => void logout()} aria-label="ออกจากระบบ">
               <LogOut className="size-4" />
             </Button>
           </>
@@ -65,7 +66,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <LogIn className="size-4" />
-            Admin login
+            เข้าสู่ระบบแอดมิน
           </NavLink>
         )}
         <ThemeToggle />

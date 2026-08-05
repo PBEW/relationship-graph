@@ -1,6 +1,6 @@
-# Online Relationship Graph
+# 3 ชั่วโมงไร้ค่า (Online Relationship Graph)
 
-An interactive web app for mapping people and relationships in online communities (VRChat, Discord, gaming guilds, etc.) — search people, explore an interactive relationship graph, view profiles with timelines, and manage everything through an admin panel.
+An interactive web app for mapping people and relationships in online communities (VRChat, Discord, gaming guilds, etc.) — search people, explore an interactive relationship graph, view profiles with timelines, add relationships directly from a person's profile, and manage everything through an admin panel. The UI is localized in Thai.
 
 > **Status:** All 10 phases complete. See [Roadmap](#roadmap) and [Known Limitations](#known-limitations) below.
 

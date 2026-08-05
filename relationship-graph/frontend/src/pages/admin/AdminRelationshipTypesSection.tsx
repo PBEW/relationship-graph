@@ -41,7 +41,7 @@ export function AdminRelationshipTypesSection() {
     if (!deletingType) return;
     try {
       await deleteType.mutateAsync(deletingType.id);
-      toast.success(`${deletingType.name} deleted`);
+      toast.success(`ลบ ${deletingType.name} แล้ว`);
       setDeletingType(null);
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -53,23 +53,23 @@ export function AdminRelationshipTypesSection() {
       <div className="flex justify-end">
         <Button onClick={openCreate}>
           <Plus className="size-4" />
-          Add Relationship Type
+          เพิ่มประเภทความสัมพันธ์
         </Button>
       </div>
 
       {isLoading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : !types || types.length === 0 ? (
-        <EmptyState icon={Tag} title="No relationship types yet" />
+        <EmptyState icon={Tag} title="ยังไม่มีประเภทความสัมพันธ์" />
       ) : (
         <div className="rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Icon</TableHead>
-                <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="w-24 text-right">Actions</TableHead>
+                <TableHead>ชื่อ</TableHead>
+                <TableHead>ไอคอน</TableHead>
+                <TableHead className="hidden md:table-cell">คำอธิบาย</TableHead>
+                <TableHead className="w-24 text-right">การจัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -86,14 +86,14 @@ export function AdminRelationshipTypesSection() {
                     {rt.description ?? "—"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(rt)} aria-label="Edit">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(rt)} aria-label="แก้ไข">
                       <Pencil className="size-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeletingType(rt)}
-                      aria-label="Delete"
+                      aria-label="ลบ"
                     >
                       <Trash2 className="size-4 text-destructive" />
                     </Button>
@@ -110,9 +110,9 @@ export function AdminRelationshipTypesSection() {
       <ConfirmDialog
         open={!!deletingType}
         onOpenChange={(open) => !open && setDeletingType(null)}
-        title="Delete relationship type?"
-        description={`This will permanently delete "${deletingType?.name}". You can't delete a type that's still in use by any relationship.`}
-        confirmLabel="Delete"
+        title="ลบประเภทความสัมพันธ์นี้หรือไม่?"
+        description={`การลบ "${deletingType?.name}" จะไม่สามารถกู้คืนได้ และไม่สามารถลบประเภทที่ยังมีการใช้งานอยู่ได้`}
+        confirmLabel="ลบ"
         destructive
         isLoading={deleteType.isPending}
         onConfirm={handleDelete}

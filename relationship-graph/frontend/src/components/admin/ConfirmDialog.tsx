@@ -25,7 +25,7 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = "Confirm",
+  confirmLabel = "ยืนยัน",
   destructive,
   isLoading,
   onConfirm,
@@ -38,7 +38,7 @@ export function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>ยกเลิก</AlertDialogCancel>
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault();
@@ -47,7 +47,7 @@ export function ConfirmDialog({
             disabled={isLoading}
             className={destructive ? "bg-destructive text-white hover:bg-destructive/90" : undefined}
           >
-            {isLoading ? "Please wait..." : confirmLabel}
+            {isLoading ? "กรุณารอสักครู่..." : confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

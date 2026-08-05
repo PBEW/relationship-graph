@@ -1,6 +1,7 @@
-import { Menu, Share2 } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState } from "react";
 
+import { Logo } from "@/components/layout/Logo";
 import { SidebarContent } from "@/components/layout/Sidebar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -14,17 +15,17 @@ export function Topbar() {
       <div className="flex items-center gap-2">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Open menu">
+            <Button variant="ghost" size="icon" aria-label="เปิดเมนู">
               <Menu className="size-5" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SheetTitle className="sr-only">เมนูนำทาง</SheetTitle>
             <SidebarContent onNavigate={() => setOpen(false)} />
           </SheetContent>
         </Sheet>
-        <Share2 className="size-5 text-primary" />
-        <span className="font-semibold">Relationship Graph</span>
+        <Logo className="size-6 shrink-0" />
+        <span className="font-semibold">3 ชั่วโมงไร้ค่า</span>
       </div>
       <ThemeToggle />
     </header>

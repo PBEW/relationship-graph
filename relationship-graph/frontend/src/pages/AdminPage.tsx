@@ -6,13 +6,13 @@ import { AdminRelationshipTypesSection } from "@/pages/admin/AdminRelationshipTy
 export function AdminPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-6">
-      <h1 className="text-2xl font-semibold">Admin</h1>
+      <h1 className="text-2xl font-semibold">จัดการข้อมูล</h1>
 
       <Tabs defaultValue="people">
         <TabsList>
-          <TabsTrigger value="people">People</TabsTrigger>
-          <TabsTrigger value="relationships">Relationships</TabsTrigger>
-          <TabsTrigger value="types">Relationship Types</TabsTrigger>
+          <TabsTrigger value="people">คน</TabsTrigger>
+          <TabsTrigger value="relationships">ความสัมพันธ์</TabsTrigger>
+          <TabsTrigger value="types">ประเภทความสัมพันธ์</TabsTrigger>
         </TabsList>
         <TabsContent value="people">
           <AdminPeopleSection />

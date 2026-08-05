@@ -37,11 +37,11 @@ const COMMON_ICONS = [
 ];
 
 const relationshipTypeFormSchema = z.object({
-  name: z.string().min(1, "Name is required").max(50),
+  name: z.string().min(1, "กรุณากรอกชื่อ").max(50),
   color: z
     .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, "Must be a hex color like #06B6D4"),
-  icon: z.string().min(1, "Icon name is required").max(50),
+    .regex(/^#[0-9A-Fa-f]{6}$/, "ต้องเป็นรหัสสีแบบ hex เช่น #06B6D4"),
+  icon: z.string().min(1, "กรุณากรอกชื่อไอคอน").max(50),
   description: z.string().optional(),
 });
 
@@ -92,7 +92,7 @@ export function RelationshipTypeFormDialog({
       } else {
         await createType.mutateAsync(payload);
       }
-      toast.success(isEditing ? "Relationship type updated" : "Relationship type created");
+      toast.success(isEditing ? "แก้ไขประเภทความสัมพันธ์แล้ว" : "เพิ่มประเภทความสัมพันธ์แล้ว");
       onOpenChange(false);
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -103,9 +103,9 @@ export function RelationshipTypeFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Relationship Type" : "Add Relationship Type"}</DialogTitle>
+          <DialogTitle>{isEditing ? "แก้ไขประเภทความสัมพันธ์" : "เพิ่มประเภทความสัมพันธ์"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update this relationship type." : "Define a new type of relationship."}
+            {isEditing ? "แก้ไขประเภทความสัมพันธ์นี้" : "กำหนดประเภทความสัมพันธ์แบบใหม่"}
           </DialogDescription>
         </DialogHeader>
 
@@ -116,7 +116,7 @@ export function RelationshipTypeFormDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>ชื่อ</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
@@ -130,7 +130,7 @@ export function RelationshipTypeFormDialog({
               name="color"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Color</FormLabel>
+                  <FormLabel>สี</FormLabel>
                   <div className="flex items-center gap-2">
                     <FormControl>
                       <input
@@ -152,16 +152,16 @@ export function RelationshipTypeFormDialog({
               name="icon"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Icon</FormLabel>
+                  <FormLabel>ไอคอน</FormLabel>
                   <FormControl>
-                    <Input {...field} list="icon-suggestions" placeholder="e.g. heart" />
+                    <Input {...field} list="icon-suggestions" placeholder="เช่น heart" />
                   </FormControl>
                   <datalist id="icon-suggestions">
                     {COMMON_ICONS.map((icon) => (
                       <option key={icon} value={icon} />
                     ))}
                   </datalist>
-                  <FormDescription>A lucide-react icon name.</FormDescription>
+                  <FormDescription>ชื่อไอคอนจาก lucide-react</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -172,7 +172,7 @@ export function RelationshipTypeFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>คำอธิบาย</FormLabel>
                   <FormControl>
                     <Textarea rows={2} {...field} />
                   </FormControl>
@@ -183,10 +183,10 @@ export function RelationshipTypeFormDialog({
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                ยกเลิก
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : isEditing ? "Save changes" : "Create"}
+                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "สร้าง"}
               </Button>
             </DialogFooter>
           </form>

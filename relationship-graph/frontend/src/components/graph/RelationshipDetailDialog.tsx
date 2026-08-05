@@ -48,7 +48,7 @@ export function RelationshipDetailDialog({
                 >
                   {edge.relationship_type.name}
                 </Badge>
-                {edge.status === "ended" && <Badge variant="secondary">Ended</Badge>}
+                {edge.status === "ended" && <Badge variant="secondary">เลิกกันแล้ว</Badge>}
               </DialogTitle>
               {edge.relationship_type.description && (
                 <DialogDescription>{edge.relationship_type.description}</DialogDescription>
@@ -69,7 +69,7 @@ export function RelationshipDetailDialog({
 
             {(edge.start_date || edge.end_date) && (
               <p className="text-center text-sm text-muted-foreground">
-                {formatDate(edge.start_date) ?? "?"} — {formatDate(edge.end_date) ?? "present"}
+                {formatDate(edge.start_date) ?? "?"} — {formatDate(edge.end_date) ?? "ปัจจุบัน"}
               </p>
             )}
 
@@ -77,7 +77,7 @@ export function RelationshipDetailDialog({
 
             <DialogFooter>
               <Button variant="outline" onClick={onClose}>
-                Close
+                ปิด
               </Button>
             </DialogFooter>
           </>

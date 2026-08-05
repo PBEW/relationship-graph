@@ -24,7 +24,7 @@ interface PersonComboboxProps {
   placeholder?: string;
 }
 
-export function PersonCombobox({ value, onChange, excludeId, placeholder = "Select a person..." }: PersonComboboxProps) {
+export function PersonCombobox({ value, onChange, excludeId, placeholder = "เลือกคน..." }: PersonComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 200);
@@ -35,8 +35,16 @@ export function PersonCombobox({ value, onChange, excludeId, placeholder = "Sele
     enabled: open,
   });
 
+  // Deliberately NOT ["person-profile", value] - that key is also used by
+  // usePersonProfile, whose queryFn caches the *full* profile shape
+  // ({ person, relationships, stats, timeline }). Sharing the key meant
+  // whichever query populated the cache first "won", and on pages that also
+  // call usePersonProfile for the same id (e.g. adding a relationship from
+  // that person's own profile page), this query would silently receive the
+  // full-profile shape instead of just the person - display_name would be
+  // undefined and the trigger button rendered blank.
   const { data: selectedPerson } = useQuery({
-    queryKey: ["person-profile", value],
+    queryKey: ["person-combobox-selected", value],
     queryFn: () => getPersonProfile(value!).then((p) => p.person),
     enabled: !!value,
     staleTime: 60_000,
@@ -60,9 +68,9 @@ export function PersonCombobox({ value, onChange, excludeId, placeholder = "Sele
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search people..." value={search} onValueChange={setSearch} />
+          <CommandInput placeholder="ค้นหาคน..." value={search} onValueChange={setSearch} />
           <CommandList>
-            <CommandEmpty>{isLoading ? "Searching..." : "No people found."}</CommandEmpty>
+            <CommandEmpty>{isLoading ? "กำลังค้นหา..." : "ไม่พบข้อมูลคน"}</CommandEmpty>
             <CommandGroup>
               {people.map((person) => (
                 <CommandItem
