@@ -2,9 +2,10 @@
 import os
 
 from flask import Flask, send_from_directory
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.config import get_config
-from app.extensions import cors, db, jwt, migrate
+from app.extensions import cors, db, jwt, limiter, migrate
 from app.utils.errors import register_error_handlers
 from app.utils.jwt_callbacks import register_jwt_callbacks
 
@@ -13,12 +14,19 @@ def create_app(env_name: str | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(get_config(env_name))
 
+    # Hosted behind a reverse proxy (Render), so request.remote_addr is the
+    # proxy's IP - every visitor would share one rate-limit bucket without
+    # this. x_for=1 reads the *last* X-Forwarded-For entry, the one the proxy
+    # appends itself, so a client can't spoof its way into a fresh bucket.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     register_jwt_callbacks(app, jwt)
+    limiter.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
 
     from app import models  # noqa: F401  (registers tables on db.metadata)

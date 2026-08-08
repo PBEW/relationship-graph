@@ -5,7 +5,13 @@ services:
     rootDir: relationship-graph/backend
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: flask db upgrade && gunicorn --bind 0.0.0.0:$PORT --workers 2 wsgi:app
+    # Single worker on purpose: both the JWT revocation list
+    # (app/services/auth_service.py) and the login rate limiter
+    # (app/extensions.py) keep state in process memory, so a second worker
+    # would let a logged-out token keep working on the other one, and hand
+    # attackers a fresh rate-limit bucket per worker. Move both to Redis
+    # before scaling this up.
+    startCommand: flask db upgrade && gunicorn --bind 0.0.0.0:$PORT --workers 1 wsgi:app
     healthCheckPath: /api/health
     envVars:
       # 3.12, not 3.13: the pinned psycopg2-binary==2.9.9 in requirements.txt
@@ -21,6 +27,11 @@ services:
         generateValue: true
       - key: JWT_SECRET_KEY
         generateValue: true
+      # Short-lived access tokens bound the damage of the in-memory
+      # revocation list: worst case a token survives logout for this long.
+      # The frontend refreshes transparently, so users never see it.
+      - key: JWT_ACCESS_TOKEN_EXPIRES_MINUTES
+        value: "5"
       # Neon (or any other external Postgres) connection string - not a
       # Render-managed database, so this is set by hand in the dashboard.
       - key: DATABASE_URL

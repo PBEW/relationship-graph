@@ -20,12 +20,14 @@ Two roles: `member` (full read/write access to people/relationships/types — sa
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/login` | — | Body: `username`, `password`. Returns `{ access_token, refresh_token }`. Rejects (401) unknown username, wrong password, or a deactivated account. Access token expires in 15 min (`JWT_ACCESS_TOKEN_EXPIRES_MINUTES`), refresh in 30 days. |
+| POST | `/api/auth/login` | — | Body: `username`, `password`. Returns `{ access_token, refresh_token }`. Rejects (401) unknown username, wrong password, or a deactivated account. **Rate limited** to 10/minute and 60/hour per client IP; over that it returns 429 without touching the database. Access token expires in `JWT_ACCESS_TOKEN_EXPIRES_MINUTES` (15 by default, 5 in the Render deploy), refresh in 30 days. |
 | POST | `/api/auth/refresh` | refresh token | Returns a new `access_token`. Also 401s if the account was deactivated since the refresh token was issued. |
 | POST | `/api/auth/logout` | access token | Revokes the presented access token (tracked in an in-memory blocklist — see caveat below). |
 | GET | `/api/auth/me` | access token | Returns `{ "id", "username", "role" }` for the current token. |
 
-> **Caveat:** the logout blocklist is an in-memory Python `set`, which only works correctly for a single process. The production Dockerfile runs gunicorn with 4 workers, so a token revoked on one worker would still be valid on another. Fine for local dev / single-worker deployments; swap for a shared store (e.g. Redis) before running multi-worker in production. Flagged here for the Phase 9 optimization pass.
+> **Caveat:** the logout blocklist is an in-memory Python `set` and the login rate limiter counts in process memory, so both are only correct in a single process. `render.yaml` therefore runs gunicorn with `--workers 1` and shortens access tokens to 5 minutes (the worst case a revoked token can outlive its logout). The Docker Compose setup still runs 4 workers and is affected. Move both to a shared store (e.g. Redis) before scaling out.
+
+> **Behind a proxy:** the app applies `ProxyFix(x_for=1)`, so rate limiting keys on the real client IP rather than the load balancer's. Deploying it somewhere *without* a proxy in front means clients could spoof `X-Forwarded-For`; drop that middleware in `app/__init__.py` if so.
 
 ## Users (super admin only)
 

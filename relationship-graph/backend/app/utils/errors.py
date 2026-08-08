@@ -1,5 +1,6 @@
 """Centralized API error handling."""
 from flask import Flask, jsonify
+from flask_limiter.errors import RateLimitExceeded
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.exceptions import HTTPException
@@ -46,6 +47,12 @@ def register_error_handlers(app: Flask) -> None:
     def handle_db_error(err: SQLAlchemyError):
         app.logger.exception("Database error")
         return jsonify({"error": "Database error"}), 500
+
+    @app.errorhandler(RateLimitExceeded)
+    def handle_rate_limit(err: RateLimitExceeded):
+        # Registered ahead of the generic HTTPException handler, whose
+        # description for this is the raw limit string ("10 per 1 minute").
+        return jsonify({"error": "Too many attempts. Please wait a minute and try again."}), 429
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(err: HTTPException):

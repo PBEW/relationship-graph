@@ -9,6 +9,7 @@ from werkzeug.security import generate_password_hash
 
 from app import create_app
 from app.extensions import db as _db
+from app.extensions import limiter
 from app.models import Person, Relationship, RelationshipType, User
 
 
@@ -30,6 +31,14 @@ def client(app):
 @pytest.fixture()
 def db(app):
     return _db
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter(app):
+    """The login limiter's counters live in process memory and so leak between
+    tests - one test's attempts would eat into the next one's budget."""
+    limiter.reset()
+    yield
 
 
 @pytest.fixture()

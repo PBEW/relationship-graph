@@ -123,7 +123,7 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 
 ## Testing
 
-**Backend** (pytest, 48 tests — auth, users, people, relationships, relationship types, dashboard, graph):
+**Backend** (pytest, 49 tests — auth, users, people, relationships, relationship types, dashboard, graph):
 
 ```bash
 cd backend
@@ -162,5 +162,5 @@ See [docs/API.md](docs/API.md).
 This project was built and verified in a dev environment without a local PostgreSQL or Docker installation available, so a few things are worth knowing before you rely on it:
 
 - **Backend correctness was verified against SQLite, not Postgres**, using a scratch compatibility shim (patching the Postgres-only `UUID` type and neutralizing the `~` regex `CHECK` constraint) that exists only in throwaway verification scripts — never committed. All migrations, models, and the pytest suite are written for Postgres and were reviewed carefully, but **run `flask db upgrade` and `pytest` against a real Postgres instance before depending on this in production.**
-- **JWT logout uses an in-memory revoked-token set** (`backend/app/services/auth_service.py`). This works correctly for a single process, but the production Dockerfile runs gunicorn with 4 workers — a token revoked on one worker stays valid on the other three. Fine for local dev or a single-worker deployment; swap in a shared store (e.g. Redis) before running multi-worker in production.
+- **Two pieces of auth state live in process memory**: the JWT revoked-token set (`backend/app/services/auth_service.py`) and the login rate limiter (`backend/app/extensions.py`). Both are only correct in a single process, so `render.yaml` pins gunicorn to `--workers 1` and access tokens to 5 minutes, bounding how long a logged-out token can survive. The Docker Compose setup still uses 4 workers and is affected — move both to a shared store (e.g. Redis) before running multi-worker anywhere that matters.
 - **Frontend E2E behavior was verified manually** (via a browser-automation tool driving the real running app against seeded data) rather than with a committed E2E test suite (e.g. Playwright/Cypress). The Vitest suite covers utilities/hooks/presentational components only — page-level and integration tests are a reasonable next addition.

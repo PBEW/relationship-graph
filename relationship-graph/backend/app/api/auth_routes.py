@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 
+from app.extensions import limiter
 from app.schemas.auth_schema import login_schema
 from app.services.auth_service import AuthService
 from app.utils.auth_decorators import get_current_user, login_required
@@ -10,7 +11,11 @@ auth_bp = Blueprint("auth", __name__)
 service = AuthService()
 
 
+# The only unauthenticated write endpoint, so the only one worth guessing at.
+# Loose enough that a person fumbling their password never notices, tight
+# enough that credential stuffing isn't practical.
 @auth_bp.post("/login")
+@limiter.limit("10 per minute; 60 per hour")
 def login():
     data = login_schema.load(request.get_json(silent=True) or {})
     tokens = service.authenticate(data["username"], data["password"])

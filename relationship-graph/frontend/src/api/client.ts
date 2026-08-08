@@ -25,13 +25,60 @@ export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "/api",
 });
 
+/**
+ * The API is hosted on a free tier that suspends the server after a spell of
+ * inactivity, so the first request of a session can take the best part of a
+ * minute while it boots. Without a signal the app just looks frozen, so track
+ * how long requests are taking and announce it once they run long.
+ */
+export const SLOW_REQUEST_EVENT = "api:slow-request";
+const SLOW_REQUEST_MS = 3000;
+
+let pendingRequests = 0;
+let slowTimer: ReturnType<typeof setTimeout> | null = null;
+
+function announceSlow(isSlow: boolean) {
+  window.dispatchEvent(new CustomEvent<boolean>(SLOW_REQUEST_EVENT, { detail: isSlow }));
+}
+
+function onRequestStart() {
+  pendingRequests += 1;
+  // Only start timing when the app goes from idle to busy; a request that
+  // begins while something slow is already in flight shouldn't reset it.
+  if (pendingRequests === 1 && slowTimer === null) {
+    slowTimer = setTimeout(() => announceSlow(true), SLOW_REQUEST_MS);
+  }
+}
+
+function onRequestEnd() {
+  pendingRequests = Math.max(0, pendingRequests - 1);
+  if (pendingRequests > 0) return;
+  if (slowTimer !== null) {
+    clearTimeout(slowTimer);
+    slowTimer = null;
+  }
+  announceSlow(false);
+}
+
 apiClient.interceptors.request.use((config) => {
+  onRequestStart();
   const token = tokenStorage.getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (response) => {
+    onRequestEnd();
+    return response;
+  },
+  (error) => {
+    onRequestEnd();
+    return Promise.reject(error);
+  },
+);
 
 let refreshPromise: Promise<string> | null = null;
 

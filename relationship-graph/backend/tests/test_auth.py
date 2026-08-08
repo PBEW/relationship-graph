@@ -109,3 +109,25 @@ def test_get_routes_require_auth(client):
 def test_get_routes_work_with_valid_token(client, auth_headers):
     response = client.get("/api/people", headers=auth_headers)
     assert response.status_code == 200
+
+
+def test_repeated_failed_logins_are_rate_limited(client, super_admin):
+    # The configured limit is 10/minute; the 11th attempt should be refused
+    # outright rather than checked against the database.
+    statuses = [
+        client.post(
+            "/api/auth/login", json={"username": "admin", "password": "wrong"}
+        ).status_code
+        for _ in range(11)
+    ]
+
+    assert statuses[:10] == [401] * 10
+    assert statuses[10] == 429
+    assert "Too many attempts" in statuses_body(client)
+
+
+def statuses_body(client):
+    """The message a blocked visitor actually sees."""
+    return client.post(
+        "/api/auth/login", json={"username": "admin", "password": "wrong"}
+    ).get_json()["error"]
