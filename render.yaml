@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: relationship-graph-backend
+    runtime: python
+    rootDir: relationship-graph/backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: flask db upgrade && gunicorn --bind 0.0.0.0:$PORT --workers 2 wsgi:app
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: wsgi.py
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      # Neon (or any other external Postgres) connection string - not a
+      # Render-managed database, so this is set by hand in the dashboard.
+      - key: DATABASE_URL
+        sync: false
+      # Comma-separated list of allowed frontend origins, e.g. the Vercel
+      # deployment URL. Set by hand once that URL is known.
+      - key: CORS_ORIGINS
+        sync: false
+      # Seeds the first super_admin account (migration 5490fe2cba1e).
+      # Only read once, on the very first deploy/migration run.
+      - key: SUPER_ADMIN_USERNAME
+        sync: false
+      - key: SUPER_ADMIN_PASSWORD
+        sync: false

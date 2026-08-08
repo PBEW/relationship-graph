@@ -12,6 +12,16 @@ def _split_csv(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _normalize_database_url(url: str) -> str:
+    """Some hosts (Heroku-style providers) still hand out `postgres://` -
+    SQLAlchemy 1.4+ only recognizes `postgresql://`/`postgresql+psycopg2://`
+    and raises on the old scheme, so rewrite it here rather than requiring
+    every deploy target to know about this quirk."""
+    if url.startswith("postgres://"):
+        return "postgresql://" + url[len("postgres://"):]
+    return url
+
+
 def _resolve_upload_folder() -> str:
     """A relative UPLOAD_FOLDER (e.g. the "uploads" default in .env.example)
     must resolve the same way for both writing files and serving them via
@@ -26,9 +36,11 @@ class Config:
 
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-me-in-production-32b")
 
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/relationship_graph",
+    SQLALCHEMY_DATABASE_URI = _normalize_database_url(
+        os.environ.get(
+            "DATABASE_URL",
+            "postgresql+psycopg2://postgres:postgres@localhost:5432/relationship_graph",
+        )
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
@@ -61,9 +73,11 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "TEST_DATABASE_URL",
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/relationship_graph_test",
+    SQLALCHEMY_DATABASE_URI = _normalize_database_url(
+        os.environ.get(
+            "TEST_DATABASE_URL",
+            "postgresql+psycopg2://postgres:postgres@localhost:5432/relationship_graph_test",
+        )
     )
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
 
