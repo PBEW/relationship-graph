@@ -47,7 +47,7 @@ docker compose up --build
 
 To seed fake data, run the seed script from your host machine against the containerized Postgres (exposed on `localhost:5432`) — it isn't bundled into the backend image. From `backend/`, with a venv that has `requirements.txt` installed and `DATABASE_URL` pointing at `localhost:5432`: `python ../scripts/seed.py`.
 
-Admin login (dev default — **change before deploying**, see `backend/.env.example`): username `admin`, password `admin`.
+First login (dev default super admin — **change before deploying**, see `backend/.env.example`): username `admin`, password `admin`. The whole site requires login; the super admin can create/disable more accounts for friends from the admin panel's "ผู้ใช้งาน" tab.
 
 ### Option B — Local development (no Docker)
 
@@ -100,7 +100,7 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 
 ## Testing
 
-**Backend** (pytest, 35 tests — auth, people, relationships, relationship types, dashboard, graph):
+**Backend** (pytest, 48 tests — auth, users, people, relationships, relationship types, dashboard, graph):
 
 ```bash
 cd backend

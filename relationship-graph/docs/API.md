@@ -4,7 +4,7 @@ Base URL: `/api` (e.g. `http://localhost:5000/api` in local dev, proxied through
 
 All responses are JSON. Errors follow `{"error": "message"}`, validation errors `{"error": "Validation failed", "details": {...}}`.
 
-> **Auth:** all `POST`/`PUT`/`DELETE` endpoints below (except `/api/auth/login`) require `Authorization: Bearer <access_token>`. `GET` endpoints are public/read-only.
+> **Auth:** every endpoint below except `/api/auth/login` requires `Authorization: Bearer <access_token>` — including `GET`s. A token is rejected (401) if its account has since been deactivated, even if the token itself hasn't expired. `/api/users/*` additionally requires the `super_admin` role (403 otherwise).
 
 ## Health
 
@@ -14,16 +14,29 @@ All responses are JSON. Errors follow `{"error": "message"}`, validation errors 
 
 ## Auth
 
-Single-admin app — there's no `User` table; credentials are `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` env vars (see `backend/.env.example`). Dev default: `admin` / `admin`.
+Multi-user app backed by a `users` table (see `database/README.md`). The first account (role `super_admin`) is seeded by migration `5490fe2cba1e` from `SUPER_ADMIN_USERNAME` / `SUPER_ADMIN_PASSWORD` (or `SUPER_ADMIN_PASSWORD_HASH`) env vars — see `backend/.env.example`. Dev default: `admin` / `admin`. Every other account is managed afterward via `/api/users` (or the admin panel's "ผู้ใช้งาน" tab), not env vars.
+
+Two roles: `member` (full read/write access to people/relationships/types — same as the old single-admin) and `super_admin` (everything a member can do, plus managing accounts). The whole site requires login — there is no public/anonymous read access.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/login` | — | Body: `username`, `password`. Returns `{ access_token, refresh_token }`. Access token expires in 15 min (`JWT_ACCESS_TOKEN_EXPIRES_MINUTES`), refresh in 30 days. |
-| POST | `/api/auth/refresh` | refresh token | Returns a new `access_token`. |
+| POST | `/api/auth/login` | — | Body: `username`, `password`. Returns `{ access_token, refresh_token }`. Rejects (401) unknown username, wrong password, or a deactivated account. Access token expires in 15 min (`JWT_ACCESS_TOKEN_EXPIRES_MINUTES`), refresh in 30 days. |
+| POST | `/api/auth/refresh` | refresh token | Returns a new `access_token`. Also 401s if the account was deactivated since the refresh token was issued. |
 | POST | `/api/auth/logout` | access token | Revokes the presented access token (tracked in an in-memory blocklist — see caveat below). |
-| GET | `/api/auth/me` | access token | Returns `{ "username": "..." }` for the current token. |
+| GET | `/api/auth/me` | access token | Returns `{ "id", "username", "role" }` for the current token. |
 
 > **Caveat:** the logout blocklist is an in-memory Python `set`, which only works correctly for a single process. The production Dockerfile runs gunicorn with 4 workers, so a token revoked on one worker would still be valid on another. Fine for local dev / single-worker deployments; swap for a shared store (e.g. Redis) before running multi-worker in production. Flagged here for the Phase 9 optimization pass.
+
+## Users (super admin only)
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/users` | List all accounts. |
+| POST | `/api/users` | Create an account. Body: `username` (unique, 3-80 chars), `password` (min 4 chars), `role` (`member`\|`super_admin`, default `member`). |
+| PATCH | `/api/users/<uuid>` | Partial update — `username`, `password` (optional; only rehashed if provided), `role`, `is_active`. Deactivating a user (`is_active: false`) blocks their next request immediately, even on an unexpired token. |
+| DELETE | `/api/users/<uuid>` | Delete an account. |
+
+Safety rules (409 on violation): you can't delete your own account, and you can't demote/deactivate/delete the last active `super_admin` — both would risk locking everyone out of user management.
 
 ## People
 
@@ -99,4 +112,4 @@ Avatars uploaded via `POST /api/people/<uuid>/avatar` are validated as real imag
 
 ---
 
-Implemented and smoke-tested against SQLite (no local/Docker Postgres available in the dev environment) — full CRUD, search, pagination, validation errors, cascade delete, the in-use guard on relationship types, the full auth flow (login, bad password, missing/expired/revoked/wrong-type tokens, refresh, logout), and the profile/timeline/dashboard/graph aggregations all verified working end-to-end. Not yet verified against real PostgreSQL (see `database/README.md`).
+Implemented and smoke-tested against SQLite (no local/Docker Postgres available in the dev environment) — full CRUD, search, pagination, validation errors, cascade delete, the in-use guard on relationship types, the full auth flow (login, bad password, disabled account, missing/expired/revoked/wrong-type tokens, refresh, logout), user management (create/list/update/delete, role and last-super-admin safety checks), and the profile/timeline/dashboard/graph aggregations all verified working end-to-end (48 pytest cases). Not yet verified against real PostgreSQL (see `database/README.md`).

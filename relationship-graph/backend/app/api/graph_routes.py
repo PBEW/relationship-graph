@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify
 
 from app.repositories.person_repository import PersonRepository
 from app.repositories.relationship_repository import RelationshipRepository
+from app.utils.auth_decorators import login_required
 
 graph_bp = Blueprint("graph", __name__)
 person_repo = PersonRepository()
@@ -10,6 +11,7 @@ relationship_repo = RelationshipRepository()
 
 
 @graph_bp.get("")
+@login_required
 def get_graph():
     people = person_repo.list_all()
     relationships = relationship_repo.list_all()

@@ -140,6 +140,23 @@ export interface AuthTokens {
   refresh_token: string;
 }
 
+export type UserRole = "super_admin" | "member";
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface UserAccountInput {
+  username: string;
+  password: string;
+  role?: UserRole;
+  is_active?: boolean;
+}
+
 export interface ApiErrorBody {
   error: string;
   details?: unknown;

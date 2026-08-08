@@ -5,10 +5,11 @@ see backend/.env.example). Each test runs inside a transaction-scoped app
 context with tables created fresh and dropped afterward.
 """
 import pytest
+from werkzeug.security import generate_password_hash
 
 from app import create_app
 from app.extensions import db as _db
-from app.models import Person, Relationship, RelationshipType
+from app.models import Person, Relationship, RelationshipType, User
 
 
 @pytest.fixture()
@@ -32,9 +33,45 @@ def db(app):
 
 
 @pytest.fixture()
-def auth_headers(client):
+def super_admin(db):
+    user = User(
+        username="admin",
+        password_hash=generate_password_hash("admin"),
+        role="super_admin",
+        is_active=True,
+    )
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+
+@pytest.fixture()
+def member_user(db):
+    user = User(
+        username="member",
+        password_hash=generate_password_hash("member123"),
+        role="member",
+        is_active=True,
+    )
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+
+@pytest.fixture()
+def auth_headers(client, super_admin):
     response = client.post(
         "/api/auth/login", json={"username": "admin", "password": "admin"}
+    )
+    assert response.status_code == 200, response.get_json()
+    token = response.get_json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture()
+def member_headers(client, member_user):
+    response = client.post(
+        "/api/auth/login", json={"username": "member", "password": "member123"}
     )
     assert response.status_code == 200, response.get_json()
     token = response.get_json()["access_token"]

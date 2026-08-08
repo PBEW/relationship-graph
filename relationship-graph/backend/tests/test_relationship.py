@@ -69,26 +69,26 @@ def test_nonexistent_person_reference_is_rejected(client, auth_headers, make_per
     assert response.status_code == 422
 
 
-def test_filter_by_person_id(client, make_person, make_relationship):
+def test_filter_by_person_id(client, auth_headers, make_person, make_relationship):
     a = make_person(display_name="A")
     b = make_person(display_name="B")
     c = make_person(display_name="C")
     make_relationship(a, b)
     make_relationship(a, c)
 
-    response = client.get(f"/api/relationships?person_id={a.id}")
+    response = client.get(f"/api/relationships?person_id={a.id}", headers=auth_headers)
     body = response.get_json()
     assert body["total"] == 2
 
 
-def test_filter_by_status(client, make_person, make_relationship):
+def test_filter_by_status(client, auth_headers, make_person, make_relationship):
     a = make_person(display_name="A")
     b = make_person(display_name="B")
     c = make_person(display_name="C")
     make_relationship(a, b, status="active")
     make_relationship(a, c, status="ended")
 
-    active = client.get("/api/relationships?status=active")
+    active = client.get("/api/relationships?status=active", headers=auth_headers)
     assert active.get_json()["total"] == 1
 
 
@@ -113,4 +113,4 @@ def test_delete_relationship(client, auth_headers, make_person, make_relationshi
 
     response = client.delete(f"/api/relationships/{rel.id}", headers=auth_headers)
     assert response.status_code == 204
-    assert client.get(f"/api/relationships/{rel.id}").status_code == 404
+    assert client.get(f"/api/relationships/{rel.id}", headers=auth_headers).status_code == 404

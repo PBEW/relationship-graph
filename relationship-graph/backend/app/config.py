@@ -42,14 +42,9 @@ class Config:
     )
     JWT_TOKEN_LOCATION = ["headers"]
 
-    # Single-admin app (no User table in the schema) - credentials live in env vars.
-    # Dev default is username "admin" / password "admin" - override both in production.
-    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-    ADMIN_PASSWORD_HASH = os.environ.get(
-        "ADMIN_PASSWORD_HASH",
-        "scrypt:32768:8:1$NwgV6iJNfbaUdsNk$b2a96dc751ef665415875bcaa4e9a1c35402169256c71e1"
-        "c284895c6baaae31bcf800e20dc669a7445ed73abe80bc1cf2e0c28eae90303875d1288ae2772f6d1",
-    )
+    # Credentials now live in the `users` table (see app/models/user.py and
+    # migration 5490fe2cba1e). SUPER_ADMIN_USERNAME/SUPER_ADMIN_PASSWORD(_HASH)
+    # are only read once, by that migration, to seed the first account.
 
     CORS_ORIGINS = _split_csv(os.environ.get("CORS_ORIGINS", "http://localhost:5173"))
 

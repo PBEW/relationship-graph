@@ -66,7 +66,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <LogIn className="size-4" />
-            เข้าสู่ระบบแอดมิน
+            เข้าสู่ระบบ
           </NavLink>
         )}
         <ThemeToggle />

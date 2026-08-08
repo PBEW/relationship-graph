@@ -49,8 +49,8 @@ def test_delete_unused_type_succeeds(client, auth_headers, relationship_type):
     assert response.status_code == 204
 
 
-def test_list_types(client, relationship_type):
-    response = client.get("/api/relationship-types")
+def test_list_types(client, auth_headers, relationship_type):
+    response = client.get("/api/relationship-types", headers=auth_headers)
     assert response.status_code == 200
     names = [t["name"] for t in response.get_json()]
     assert relationship_type.name in names

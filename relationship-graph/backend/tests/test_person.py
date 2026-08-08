@@ -15,7 +15,7 @@ def test_create_and_get_person(client, auth_headers):
     assert create.status_code == 201
     person_id = create.get_json()["id"]
 
-    profile = client.get(f"/api/people/{person_id}")
+    profile = client.get(f"/api/people/{person_id}", headers=auth_headers)
     assert profile.status_code == 200
     body = profile.get_json()
     assert body["person"]["display_name"] == "Alice"
@@ -23,8 +23,10 @@ def test_create_and_get_person(client, auth_headers):
     assert body["stats"]["total_relationships"] == 0
 
 
-def test_get_nonexistent_person_is_404(client):
-    response = client.get("/api/people/00000000-0000-0000-0000-000000000000")
+def test_get_nonexistent_person_is_404(client, auth_headers):
+    response = client.get(
+        "/api/people/00000000-0000-0000-0000-000000000000", headers=auth_headers
+    )
     assert response.status_code == 404
 
 
@@ -54,7 +56,7 @@ def test_delete_person(client, auth_headers, make_person):
     person = make_person(display_name="To Delete")
     response = client.delete(f"/api/people/{person.id}", headers=auth_headers)
     assert response.status_code == 204
-    assert client.get(f"/api/people/{person.id}").status_code == 404
+    assert client.get(f"/api/people/{person.id}", headers=auth_headers).status_code == 404
 
 
 def test_delete_person_cascades_relationships(
@@ -67,29 +69,29 @@ def test_delete_person_cascades_relationships(
 
     client.delete(f"/api/people/{a.id}", headers=auth_headers)
 
-    response = client.get(f"/api/relationships/{rel_id}")
+    response = client.get(f"/api/relationships/{rel_id}", headers=auth_headers)
     assert response.status_code == 404
 
 
-def test_search_matches_display_name_and_discord(client, make_person):
+def test_search_matches_display_name_and_discord(client, auth_headers, make_person):
     make_person(display_name="Searchable Sam", discord="sam#1234")
     make_person(display_name="Other Person", discord="other#0001")
 
-    by_name = client.get("/api/people?search=Searchable")
+    by_name = client.get("/api/people?search=Searchable", headers=auth_headers)
     assert by_name.get_json()["total"] == 1
 
-    by_discord = client.get("/api/people?search=sam%231234")
+    by_discord = client.get("/api/people?search=sam%231234", headers=auth_headers)
     assert by_discord.get_json()["total"] == 1
 
 
-def test_pagination_respects_per_page_and_max(client, make_person):
+def test_pagination_respects_per_page_and_max(client, auth_headers, make_person):
     for i in range(5):
         make_person(display_name=f"Person {i}")
 
-    page = client.get("/api/people?per_page=2&page=1")
+    page = client.get("/api/people?per_page=2&page=1", headers=auth_headers)
     body = page.get_json()
     assert len(body["items"]) == 2
     assert body["pages"] == 3
 
-    over_max = client.get("/api/people?per_page=1000")
+    over_max = client.get("/api/people?per_page=1000", headers=auth_headers)
     assert over_max.status_code == 422

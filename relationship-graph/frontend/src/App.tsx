@@ -41,10 +41,38 @@ function App() {
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route element={<AppShell />}>
-                  <Route index element={<DashboardPage />} />
-                  <Route path="people" element={<PeoplePage />} />
-                  <Route path="people/:id" element={<PersonProfilePage />} />
-                  <Route path="graph" element={<GraphPage />} />
+                  <Route
+                    index
+                    element={
+                      <ProtectedRoute>
+                        <DashboardPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="people"
+                    element={
+                      <ProtectedRoute>
+                        <PeoplePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="people/:id"
+                    element={
+                      <ProtectedRoute>
+                        <PersonProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="graph"
+                    element={
+                      <ProtectedRoute>
+                        <GraphPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="login" element={<LoginPage />} />
                   <Route
                     path="admin"

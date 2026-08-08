@@ -1,7 +1,10 @@
-import { ArrowLeft, Cake, Globe, MessageCircleHeart, Plus } from "lucide-react";
+import { ArrowLeft, Cake, Globe, MessageCircleHeart, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Link, useParams } from "react-router-dom";
 
+import { getApiErrorMessage } from "@/api/client";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { RelationshipFormDialog } from "@/components/admin/RelationshipFormDialog";
 import { PersonAvatar } from "@/components/people/PersonAvatar";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
+import { useDeleteRelationship } from "@/hooks/useRelationshipMutations";
 import { usePersonProfile } from "@/hooks/usePersonProfile";
 import { GENDER_LABELS } from "@/lib/genderLabels";
+import type { Relationship } from "@/types";
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("th-TH", {
@@ -24,7 +29,30 @@ export function PersonProfilePage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading, isError } = usePersonProfile(id);
   const { isAuthenticated } = useAuth();
-  const [addRelationshipOpen, setAddRelationshipOpen] = useState(false);
+  const deleteRelationship = useDeleteRelationship();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingRelationship, setEditingRelationship] = useState<Relationship | null>(null);
+  const [deletingRelationship, setDeletingRelationship] = useState<Relationship | null>(null);
+
+  const openAdd = () => {
+    setEditingRelationship(null);
+    setFormOpen(true);
+  };
+  const openEdit = (rel: Relationship) => {
+    setEditingRelationship(rel);
+    setFormOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingRelationship) return;
+    try {
+      await deleteRelationship.mutateAsync(deletingRelationship.id);
+      toast.success("ลบความสัมพันธ์แล้ว");
+      setDeletingRelationship(null);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err));
+    }
+  };
 
   if (isLoading) {
     return (
@@ -121,7 +149,7 @@ export function PersonProfilePage() {
             ความสัมพันธ์
           </CardTitle>
           {isAuthenticated && (
-            <Button size="sm" variant="outline" onClick={() => setAddRelationshipOpen(true)}>
+            <Button size="sm" variant="outline" onClick={openAdd}>
               <Plus className="size-4" />
               เพิ่มความสัมพันธ์
             </Button>
@@ -134,27 +162,44 @@ export function PersonProfilePage() {
             relationships.map((rel) => {
               const other = rel.person_a_id === person.id ? rel.person_b : rel.person_a;
               return (
-                <Link
+                <div
                   key={rel.id}
-                  to={`/people/${other.id}`}
-                  className="flex items-center justify-between rounded-md border border-border p-3 text-sm hover:bg-accent/50"
+                  className="flex items-center justify-between gap-2 rounded-md border border-border p-3 text-sm hover:bg-accent/50"
                 >
-                  <div className="flex items-center gap-2">
+                  <Link to={`/people/${other.id}`} className="flex min-w-0 flex-1 items-center gap-2">
                     <PersonAvatar avatar={other.avatar} displayName={other.display_name} className="size-8" />
-                    <span className="font-medium">{other.display_name}</span>
+                    <span className="truncate font-medium">{other.display_name}</span>
+                  </Link>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Badge
+                      style={{
+                        backgroundColor: `${rel.relationship_type.color}20`,
+                        color: rel.relationship_type.color,
+                        borderColor: `${rel.relationship_type.color}40`,
+                      }}
+                      variant="outline"
+                    >
+                      {rel.relationship_type.name}
+                      {rel.status === "ended" && " (เลิกแล้ว)"}
+                    </Badge>
+                    {isAuthenticated && (
+                      <>
+                        <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(rel)} aria-label="แก้ไข">
+                          <Pencil className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          onClick={() => setDeletingRelationship(rel)}
+                          aria-label="ลบ"
+                        >
+                          <Trash2 className="size-3.5 text-destructive" />
+                        </Button>
+                      </>
+                    )}
                   </div>
-                  <Badge
-                    style={{
-                      backgroundColor: `${rel.relationship_type.color}20`,
-                      color: rel.relationship_type.color,
-                      borderColor: `${rel.relationship_type.color}40`,
-                    }}
-                    variant="outline"
-                  >
-                    {rel.relationship_type.name}
-                    {rel.status === "ended" && " (เลิกแล้ว)"}
-                  </Badge>
-                </Link>
+                </div>
               );
             })
           )}
@@ -197,10 +242,21 @@ export function PersonProfilePage() {
       </Card>
 
       <RelationshipFormDialog
-        open={addRelationshipOpen}
-        onOpenChange={setAddRelationshipOpen}
-        relationship={null}
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        relationship={editingRelationship}
         defaultPersonId={person.id}
+      />
+
+      <ConfirmDialog
+        open={!!deletingRelationship}
+        onOpenChange={(open) => !open && setDeletingRelationship(null)}
+        title="ลบความสัมพันธ์นี้หรือไม่?"
+        description="การลบจะไม่สามารถกู้คืนได้"
+        confirmLabel="ลบ"
+        destructive
+        isLoading={deleteRelationship.isPending}
+        onConfirm={handleDelete}
       />
     </div>
   );

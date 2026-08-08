@@ -2,11 +2,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import * as authApi from "@/api/auth";
 import { tokenStorage } from "@/api/client";
+import type { UserRole } from "@/types";
 
 interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   username: string | null;
+  role: UserRole | null;
+  isSuperAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -16,6 +19,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!tokenStorage.getAccessToken());
   const [username, setUsername] = useState<string | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(isAuthenticated);
 
   useEffect(() => {
@@ -25,7 +29,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     authApi
       .me()
-      .then((res) => setUsername(res.username))
+      .then((res) => {
+        setUsername(res.username);
+        setRole(res.role);
+      })
       .catch(() => {
         tokenStorage.clear();
         setIsAuthenticated(false);
@@ -37,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleForcedLogout = () => {
       setIsAuthenticated(false);
       setUsername(null);
+      setRole(null);
     };
     window.addEventListener("auth:logout", handleForcedLogout);
     return () => window.removeEventListener("auth:logout", handleForcedLogout);
@@ -57,12 +65,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     tokenStorage.clear();
     setUsername(null);
+    setRole(null);
     setIsAuthenticated(false);
   }, []);
 
+  const isSuperAdmin = role === "super_admin";
+
   const value = useMemo(
-    () => ({ isAuthenticated, isLoading, username, login, logout }),
-    [isAuthenticated, isLoading, username, login, logout],
+    () => ({ isAuthenticated, isLoading, username, role, isSuperAdmin, login, logout }),
+    [isAuthenticated, isLoading, username, role, isSuperAdmin, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

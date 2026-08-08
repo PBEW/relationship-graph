@@ -16,6 +16,7 @@ def register_blueprints(app: Flask) -> None:
     from app.api.person_routes import person_bp
     from app.api.relationship_routes import relationship_bp
     from app.api.relationship_type_routes import relationship_type_bp
+    from app.api.user_routes import user_bp
 
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -24,3 +25,4 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(relationship_type_bp, url_prefix="/api/relationship-types")
     app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
     app.register_blueprint(graph_bp, url_prefix="/api/graph")
+    app.register_blueprint(user_bp, url_prefix="/api/users")

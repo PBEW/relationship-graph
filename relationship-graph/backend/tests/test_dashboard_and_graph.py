@@ -1,12 +1,14 @@
 """Tests for /api/dashboard/stats and /api/graph."""
 
 
-def test_dashboard_stats_shape_and_counts(client, make_person, make_relationship, relationship_type):
+def test_dashboard_stats_shape_and_counts(
+    client, auth_headers, make_person, make_relationship, relationship_type
+):
     a = make_person(display_name="A")
     b = make_person(display_name="B")
     make_relationship(a, b)
 
-    response = client.get("/api/dashboard/stats")
+    response = client.get("/api/dashboard/stats", headers=auth_headers)
     assert response.status_code == 200
     body = response.get_json()
     assert body["total_people"] == 2
@@ -16,12 +18,12 @@ def test_dashboard_stats_shape_and_counts(client, make_person, make_relationship
     assert len(body["recently_added"]) == 2
 
 
-def test_graph_endpoint_shape(client, make_person, make_relationship):
+def test_graph_endpoint_shape(client, auth_headers, make_person, make_relationship):
     a = make_person(display_name="A")
     b = make_person(display_name="B")
     rel = make_relationship(a, b)
 
-    response = client.get("/api/graph")
+    response = client.get("/api/graph", headers=auth_headers)
     assert response.status_code == 200
     body = response.get_json()
 

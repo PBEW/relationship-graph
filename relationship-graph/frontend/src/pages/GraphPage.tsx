@@ -36,6 +36,7 @@ function GraphCanvas({ data }: { data: GraphData }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 200);
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
+  const [hiddenTypeIds, setHiddenTypeIds] = useState<Set<string>>(new Set());
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -68,10 +69,23 @@ function GraphCanvas({ data }: { data: GraphData }) {
     });
   }, []);
 
+  const toggleType = useCallback((typeId: string) => {
+    setHiddenTypeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(typeId)) next.delete(typeId);
+      else next.add(typeId);
+      return next;
+    });
+  }, []);
+
   const { visibleEdgeIds, hiddenNodeIds, totalDegree } = useMemo(() => {
     const hiddenEdgeIdSet = new Set<string>();
     for (const edge of data.edges) {
-      if (collapsedNodeIds.has(edge.source) || collapsedNodeIds.has(edge.target)) {
+      if (
+        collapsedNodeIds.has(edge.source) ||
+        collapsedNodeIds.has(edge.target) ||
+        hiddenTypeIds.has(edge.relationship_type.id)
+      ) {
         hiddenEdgeIdSet.add(edge.id);
       }
     }
@@ -104,7 +118,7 @@ function GraphCanvas({ data }: { data: GraphData }) {
       hiddenNodeIds: hidden,
       totalDegree: degree,
     };
-  }, [data, collapsedNodeIds]);
+  }, [data, collapsedNodeIds, hiddenTypeIds]);
 
   const matchingNodeIds = useMemo(() => {
     if (!debouncedSearch.trim()) return null;
@@ -261,7 +275,13 @@ function GraphCanvas({ data }: { data: GraphData }) {
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
         <Controls />
         <MiniMap pannable zoomable nodeColor="var(--color-primary)" maskColor="rgba(0,0,0,0.15)" />
-        <GraphToolbar search={search} onSearchChange={setSearch} matchCount={matchingNodeIds?.size ?? 0} />
+        <GraphToolbar
+          search={search}
+          onSearchChange={setSearch}
+          matchCount={matchingNodeIds?.size ?? 0}
+          hiddenTypeIds={hiddenTypeIds}
+          onToggleType={toggleType}
+        />
       </ReactFlow>
 
       <ProfileSheet

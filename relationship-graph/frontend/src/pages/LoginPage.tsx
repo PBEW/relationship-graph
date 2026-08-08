@@ -37,7 +37,7 @@ export function LoginPage() {
   });
 
   if (isAuthenticated) {
-    const redirectTo = (location.state as { from?: string } | null)?.from ?? "/admin";
+    const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -45,7 +45,7 @@ export function LoginPage() {
     setError(null);
     try {
       await login(values.username, values.password);
-      const redirectTo = (location.state as { from?: string } | null)?.from ?? "/admin";
+      const redirectTo = (location.state as { from?: string } | null)?.from ?? "/";
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -56,8 +56,8 @@ export function LoginPage() {
     <div className="flex h-full items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>เข้าสู่ระบบแอดมิน</CardTitle>
-          <CardDescription>เข้าสู่ระบบเพื่อจัดการข้อมูลคนและความสัมพันธ์</CardDescription>
+          <CardTitle>เข้าสู่ระบบ</CardTitle>
+          <CardDescription>ต้องเข้าสู่ระบบก่อนจึงจะใช้งานเว็บนี้ได้</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
