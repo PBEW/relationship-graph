@@ -16,11 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/context/AuthContext";
 import { useDeleteRelationshipType } from "@/hooks/useRelationshipTypeMutations";
 import { useRelationshipTypes } from "@/hooks/useRelationshipTypes";
 import type { RelationshipType } from "@/types";
 
 export function AdminRelationshipTypesSection() {
+  const { isSuperAdmin } = useAuth();
   const { data: types, isLoading } = useRelationshipTypes();
   const deleteType = useDeleteRelationshipType();
 
@@ -89,14 +91,17 @@ export function AdminRelationshipTypesSection() {
                     <Button variant="ghost" size="icon" onClick={() => openEdit(rt)} aria-label="แก้ไข">
                       <Pencil className="size-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeletingType(rt)}
-                      aria-label="ลบ"
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
+                    {/* Shared vocabulary for everyone's data - super admin only. */}
+                    {isSuperAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeletingType(rt)}
+                        aria-label="ลบ"
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

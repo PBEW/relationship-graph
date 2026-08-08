@@ -48,8 +48,8 @@ Safety rules (409 on violation): you can't delete your own account, and you can'
 | GET | `/api/people/<uuid>` | Get a person's full profile: person, all relationships, computed timeline, and stats. |
 | POST | `/api/people` | Create a person. Body: `display_name` (required) + optional `nickname`, `vrchat_name`, `discord`, `steam`, `twitter`, `country`, `gender`, `birthday`, `bio`, `avatar`. |
 | PUT | `/api/people/<uuid>` | Partial update — any subset of the create fields. |
-| DELETE | `/api/people/<uuid>` | Delete a person (cascades their relationships, removes their avatar file). |
-| POST | `/api/people/<uuid>/avatar` | Upload an avatar. `multipart/form-data` with field `avatar` (png/jpg/jpeg/gif/webp, max 5MB). Replaces and deletes the previous file. |
+| DELETE | `/api/people/<uuid>` | **Super admin only** (403 otherwise) — cascades to every relationship the person appears in, and discards their stored avatar. |
+| POST | `/api/people/<uuid>/avatar` | Upload an avatar. `multipart/form-data` with field `avatar` (png/jpg/jpeg/gif/webp, max 5MB). Stored in the database, downscaled to 512×512; replaces and deletes the previous one. Returns the updated person, whose `avatar` is the URL below. |
 
 `gender` is one of `male | female | non_binary | other | unspecified`.
 
@@ -79,6 +79,8 @@ Safety rules (409 on violation): you can't delete your own account, and you can'
 
 Validation: `person_a_id` must differ from `person_b_id`; `end_date` (if set) must be `>= start_date`; all referenced IDs must exist (422 otherwise).
 
+Two people can hold only one **active** relationship of a given type — creating or editing into a second one returns **409**, in either direction. Ended ones are exempt on purpose: dating, breaking up and getting back together is history worth keeping as separate rows.
+
 ## Relationship Types
 
 | Method | Path | Description |
@@ -87,7 +89,7 @@ Validation: `person_a_id` must differ from `person_b_id`; `end_date` (if set) mu
 | GET | `/api/relationship-types/<uuid>` | Get one type. |
 | POST | `/api/relationship-types` | Create. Body: `name` (unique), `color` (`#RRGGBB`), `icon` (lucide-react icon name), `description`. |
 | PUT | `/api/relationship-types/<uuid>` | Partial update. |
-| DELETE | `/api/relationship-types/<uuid>` | Delete — **409** if any relationship still uses this type. |
+| DELETE | `/api/relationship-types/<uuid>` | **Super admin only** (403 otherwise) — types are shared vocabulary. **409** if any relationship still uses this type. |
 
 ## Dashboard
 
@@ -104,13 +106,17 @@ Validation: `person_a_id` must differ from `person_b_id`; `end_date` (if set) mu
 `nodes[]`: `id`, `display_name`, `nickname`, `avatar`.
 `edges[]`: `id`, `source`, `target`, `status`, `start_date`, `end_date`, `note`, `relationship_type` (full object, including `description`) — enough to render the relationship-detail popup without a second request.
 
-## Uploads
+## Avatars
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/uploads/<filename>` | Serves a stored avatar file (not under `/api`). Served with `Cache-Control: public, max-age=31536000, immutable` — safe since filenames are UUID-based and never reused in place. |
+| GET | `/api/avatars/<uuid>` | Serves a stored avatar image. `Cache-Control: public, max-age=31536000, immutable` — safe because a new upload mints a new id rather than overwriting. |
 
-Avatars uploaded via `POST /api/people/<uuid>/avatar` are validated as real images (Pillow-decoded, not just extension-checked) and downscaled to a max of 512×512 (aspect-ratio preserved, never upscaled) before being saved, to keep storage/bandwidth down.
+Uploads are validated as real images (Pillow-decoded, not just extension-checked) and downscaled to a max of 512×512 (aspect ratio preserved, never upscaled) before storage.
+
+Images live in the database rather than on disk, because the free hosting tier wipes the filesystem on every deploy. At 512×512 a whole community's avatars is a few megabytes.
+
+> **This route is deliberately unauthenticated**, unlike the rest of the API: a browser can't attach an `Authorization` header to a plain `<img src>`. Ids are random UUIDs that only ever appear in authenticated responses, so an image is reachable only by someone already handed its URL — the same posture as the `/uploads/` route it replaced. Don't put anything here that would be sensitive if the link leaked.
 
 ---
 

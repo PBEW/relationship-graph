@@ -102,7 +102,7 @@ A ready-to-use stack for hosting a live copy for friends, entirely on free tiers
 
 **Caveats of the free tier combo:**
 - Render's free web service **sleeps after ~15 min idle** — the first request after a while takes 30-50s to wake up, then runs normally.
-- Render's free plan has **no persistent disk** — uploaded avatars are lost on every redeploy/restart. Fine for a demo; would need S3-compatible storage (or a paid disk) to persist uploads long-term.
+- Render's free plan has **no persistent disk**, which is why avatars are stored in the database rather than as files — they survive deploys, at the cost of some Neon storage (a few MB for a whole community, against a 0.5GB allowance).
 - Neon's free tier is a good fit for `DATABASE_URL` since (unlike Render's free Postgres) it doesn't auto-expire after 30/90 days.
 
 ## Backend Architecture
@@ -123,7 +123,7 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 
 ## Testing
 
-**Backend** (pytest, 49 tests — auth, users, people, relationships, relationship types, dashboard, graph):
+**Backend** (pytest, 66 tests — auth, users, avatars, people, relationships, relationship types, dashboard, graph):
 
 ```bash
 cd backend
@@ -162,5 +162,5 @@ See [docs/API.md](docs/API.md).
 This project was built and verified in a dev environment without a local PostgreSQL or Docker installation available, so a few things are worth knowing before you rely on it:
 
 - **Backend correctness was verified against SQLite, not Postgres**, using a scratch compatibility shim (patching the Postgres-only `UUID` type and neutralizing the `~` regex `CHECK` constraint) that exists only in throwaway verification scripts — never committed. All migrations, models, and the pytest suite are written for Postgres and were reviewed carefully, but **run `flask db upgrade` and `pytest` against a real Postgres instance before depending on this in production.**
-- **Two pieces of auth state live in process memory**: the JWT revoked-token set (`backend/app/services/auth_service.py`) and the login rate limiter (`backend/app/extensions.py`). Both are only correct in a single process, so `render.yaml` pins gunicorn to `--workers 1` and access tokens to 5 minutes, bounding how long a logged-out token can survive. The Docker Compose setup still uses 4 workers and is affected — move both to a shared store (e.g. Redis) before running multi-worker anywhere that matters.
+- **Two pieces of auth state live in process memory**: the JWT revoked-token set (`backend/app/services/auth_service.py`) and the login rate limiter (`backend/app/extensions.py`). Both are only correct in a single process, so gunicorn is pinned to `--workers 1` in both `render.yaml` and the Dockerfile, and access tokens are shortened to 5 minutes on Render to bound how long a logged-out token can survive. Move both to a shared store (e.g. Redis) before scaling out.
 - **Frontend E2E behavior was verified manually** (via a browser-automation tool driving the real running app against seeded data) rather than with a committed E2E test suite (e.g. Playwright/Cypress). The Vitest suite covers utilities/hooks/presentational components only — page-level and integration tests are a reasonable next addition.

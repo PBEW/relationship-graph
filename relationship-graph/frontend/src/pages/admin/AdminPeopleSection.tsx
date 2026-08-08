@@ -19,12 +19,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getApiErrorMessage } from "@/api/client";
+import { useAuth } from "@/context/AuthContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useDeletePerson } from "@/hooks/usePersonMutations";
 import { usePeople } from "@/hooks/usePeople";
 import type { Person } from "@/types";
 
 export function AdminPeopleSection() {
+  const { isSuperAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebounce(search);
@@ -49,7 +51,7 @@ export function AdminPeopleSection() {
     if (!deletingPerson) return;
     try {
       await deletePerson.mutateAsync(deletingPerson.id);
-      toast.success(`${deletingPerson.display_name} deleted`);
+      toast.success(`ลบ ${deletingPerson.display_name} แล้ว`);
       setDeletingPerson(null);
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -110,14 +112,18 @@ export function AdminPeopleSection() {
                     <Button variant="ghost" size="icon" onClick={() => openEdit(person)} aria-label="แก้ไข">
                       <Pencil className="size-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeletingPerson(person)}
-                      aria-label="ลบ"
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
+                    {/* Deleting a person takes their relationships with them,
+                        so it's restricted to super admins server-side too. */}
+                    {isSuperAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeletingPerson(person)}
+                        aria-label="ลบ"
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

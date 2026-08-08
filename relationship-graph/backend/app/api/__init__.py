@@ -11,6 +11,7 @@ def health_check():
 
 def register_blueprints(app: Flask) -> None:
     from app.api.auth_routes import auth_bp
+    from app.api.avatar_routes import avatar_bp
     from app.api.dashboard_routes import dashboard_bp
     from app.api.graph_routes import graph_bp
     from app.api.person_routes import person_bp
@@ -26,3 +27,4 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
     app.register_blueprint(graph_bp, url_prefix="/api/graph")
     app.register_blueprint(user_bp, url_prefix="/api/users")
+    app.register_blueprint(avatar_bp, url_prefix="/api/avatars")

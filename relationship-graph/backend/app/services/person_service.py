@@ -1,15 +1,22 @@
 """Business logic for Person."""
+import uuid
+
+from app.models.avatar import Avatar
 from app.models.person import Person
+from app.repositories.avatar_repository import AvatarRepository
 from app.repositories.person_repository import PersonRepository
 from app.repositories.relationship_repository import RelationshipRepository
 from app.utils.errors import NotFoundError
-from app.utils.uploads import delete_avatar, save_avatar
+from app.utils.uploads import process_avatar
+
+AVATAR_URL_PREFIX = "/api/avatars/"
 
 
 class PersonService:
     def __init__(self):
         self.repo = PersonRepository()
         self.relationship_repo = RelationshipRepository()
+        self.avatar_repo = AvatarRepository()
 
     def list_people(self, *, search=None, gender=None, country=None, page=1, per_page=20):
         query = self.repo.query(search=search, gender=gender, country=country)
@@ -76,14 +83,36 @@ class PersonService:
 
     def delete_person(self, person_id) -> None:
         person = self.get_person(person_id)
-        avatar = person.avatar
+        old_avatar_url = person.avatar
         self.repo.delete(person)
-        delete_avatar(avatar)
+        self._delete_avatar(old_avatar_url)
 
     def upload_avatar(self, person_id, file) -> Person:
         person = self.get_person(person_id)
-        old_avatar = person.avatar
-        person.avatar = save_avatar(file)
+        old_avatar_url = person.avatar
+
+        data, mimetype = process_avatar(file)
+        avatar = self.avatar_repo.add(Avatar(mimetype=mimetype, data=data))
+        person.avatar = f"{AVATAR_URL_PREFIX}{avatar.id}"
         self.repo.update(person)
-        delete_avatar(old_avatar)
+
+        # Only after the new one is safely committed, so a failure mid-upload
+        # leaves the old picture in place rather than nothing at all.
+        self._delete_avatar(old_avatar_url)
         return person
+
+    def _delete_avatar(self, avatar_url: str | None) -> None:
+        """Drop the image a person's avatar URL points at, if we stored it.
+
+        Tolerates anything else the column might hold - the seed script and
+        older records point at external URLs.
+        """
+        if not avatar_url or not avatar_url.startswith(AVATAR_URL_PREFIX):
+            return
+        try:
+            avatar_id = uuid.UUID(avatar_url.removeprefix(AVATAR_URL_PREFIX))
+        except ValueError:
+            return
+        avatar = self.avatar_repo.get_by_id(avatar_id)
+        if avatar:
+            self.avatar_repo.delete(avatar)

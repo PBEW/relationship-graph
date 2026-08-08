@@ -49,6 +49,22 @@ def test_delete_unused_type_succeeds(client, auth_headers, relationship_type):
     assert response.status_code == 204
 
 
+def test_members_may_create_but_not_delete_types(
+    client, member_headers, relationship_type
+):
+    created = client.post(
+        "/api/relationship-types",
+        json={"name": "Roommate", "color": "#06B6D4", "icon": "home"},
+        headers=member_headers,
+    )
+    assert created.status_code == 201
+
+    deleted = client.delete(
+        f"/api/relationship-types/{relationship_type.id}", headers=member_headers
+    )
+    assert deleted.status_code == 403
+
+
 def test_list_types(client, auth_headers, relationship_type):
     response = client.get("/api/relationship-types", headers=auth_headers)
     assert response.status_code == 200

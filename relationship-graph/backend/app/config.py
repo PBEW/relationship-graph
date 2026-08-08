@@ -22,15 +22,6 @@ def _normalize_database_url(url: str) -> str:
     return url
 
 
-def _resolve_upload_folder() -> str:
-    """A relative UPLOAD_FOLDER (e.g. the "uploads" default in .env.example)
-    must resolve the same way for both writing files and serving them via
-    Flask's send_from_directory - so always anchor it to BASE_DIR here
-    rather than leaving it relative to whatever resolves it later."""
-    value = os.environ.get("UPLOAD_FOLDER", "uploads")
-    return value if os.path.isabs(value) else os.path.join(BASE_DIR, value)
-
-
 class Config:
     """Base configuration shared by all environments."""
 
@@ -60,7 +51,7 @@ class Config:
 
     CORS_ORIGINS = _split_csv(os.environ.get("CORS_ORIGINS", "http://localhost:5173"))
 
-    UPLOAD_FOLDER = _resolve_upload_folder()
+    # Avatars are stored in the database, not on disk (see models/avatar.py).
     MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH_MB", 5)) * 1024 * 1024
     ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 

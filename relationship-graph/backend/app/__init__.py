@@ -1,7 +1,5 @@
 """Flask application factory."""
-import os
-
-from flask import Flask, send_from_directory
+from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.config import get_config
@@ -20,8 +18,6 @@ def create_app(env_name: str | None = None) -> Flask:
     # appends itself, so a client can't spoof its way into a fresh bucket.
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
@@ -36,16 +32,5 @@ def create_app(env_name: str | None = None) -> Flask:
     from app.api import register_blueprints
 
     register_blueprints(app)
-
-    @app.get("/uploads/<path:filename>")
-    def uploaded_file(filename: str):
-        # Filenames are UUID-based and never reused/mutated in place (a new
-        # upload gets a fresh name and the old file is deleted), so these are
-        # safe to cache aggressively and immutably.
-        response = send_from_directory(
-            app.config["UPLOAD_FOLDER"], filename, max_age=31536000, conditional=True
-        )
-        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-        return response
 
     return app

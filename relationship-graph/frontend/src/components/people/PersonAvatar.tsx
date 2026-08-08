@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { resolveAvatarUrl } from "@/lib/avatarUrl";
 import { cn } from "@/lib/utils";
 
 function initials(name: string): string {
@@ -13,9 +14,11 @@ interface PersonAvatarProps {
 }
 
 export function PersonAvatar({ avatar, displayName, className }: PersonAvatarProps) {
+  const src = resolveAvatarUrl(avatar);
+
   return (
     <Avatar className={cn("size-10", className)}>
-      {avatar && <AvatarImage src={avatar} alt={displayName} />}
+      {src && <AvatarImage src={src} alt={displayName} />}
       <AvatarFallback>{initials(displayName)}</AvatarFallback>
     </Avatar>
   );

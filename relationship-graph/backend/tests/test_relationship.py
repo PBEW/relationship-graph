@@ -69,6 +69,97 @@ def test_nonexistent_person_reference_is_rejected(client, auth_headers, make_per
     assert response.status_code == 422
 
 
+def _create(client, auth_headers, a, b, relationship_type, **overrides):
+    payload = {
+        "person_a_id": str(a.id),
+        "person_b_id": str(b.id),
+        "relationship_type_id": str(relationship_type.id),
+    }
+    payload.update(overrides)
+    return client.post("/api/relationships", json=payload, headers=auth_headers)
+
+
+def test_duplicate_active_relationship_is_rejected(
+    client, auth_headers, make_person, relationship_type
+):
+    a = make_person(display_name="A")
+    b = make_person(display_name="B")
+
+    assert _create(client, auth_headers, a, b, relationship_type).status_code == 201
+    assert _create(client, auth_headers, a, b, relationship_type).status_code == 409
+
+
+def test_duplicate_is_rejected_regardless_of_direction(
+    client, auth_headers, make_person, relationship_type
+):
+    a = make_person(display_name="A")
+    b = make_person(display_name="B")
+
+    assert _create(client, auth_headers, a, b, relationship_type).status_code == 201
+    # Same pair, recorded the other way round.
+    assert _create(client, auth_headers, b, a, relationship_type).status_code == 409
+
+
+def test_a_second_relationship_is_allowed_once_the_first_has_ended(
+    client, auth_headers, make_person, relationship_type
+):
+    a = make_person(display_name="A")
+    b = make_person(display_name="B")
+
+    ended = _create(
+        client, auth_headers, a, b, relationship_type, status="ended", end_date="2024-01-01"
+    )
+    assert ended.status_code == 201
+
+    # They got back together - that's history, not a duplicate.
+    assert _create(client, auth_headers, a, b, relationship_type).status_code == 201
+
+
+def test_same_pair_may_hold_different_relationship_types(
+    client, auth_headers, db, make_person, relationship_type
+):
+    from app.models import RelationshipType
+
+    other_type = RelationshipType(name="Guild", color="#16A34A", icon="shield")
+    db.session.add(other_type)
+    db.session.commit()
+
+    a = make_person(display_name="A")
+    b = make_person(display_name="B")
+
+    assert _create(client, auth_headers, a, b, relationship_type).status_code == 201
+    assert _create(client, auth_headers, a, b, other_type).status_code == 201
+
+
+def test_reviving_an_ended_relationship_into_a_clash_is_rejected(
+    client, auth_headers, make_person, relationship_type, make_relationship
+):
+    a = make_person(display_name="A")
+    b = make_person(display_name="B")
+    ended = make_relationship(a, b, status="ended")
+    make_relationship(a, b, status="active")
+
+    response = client.put(
+        f"/api/relationships/{ended.id}",
+        json={"status": "active"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 409
+
+
+def test_editing_a_relationship_does_not_clash_with_itself(
+    client, auth_headers, make_person, make_relationship
+):
+    a = make_person(display_name="A")
+    b = make_person(display_name="B")
+    rel = make_relationship(a, b, status="active")
+
+    response = client.put(
+        f"/api/relationships/{rel.id}", json={"note": "still going"}, headers=auth_headers
+    )
+    assert response.status_code == 200
+
+
 def test_filter_by_person_id(client, auth_headers, make_person, make_relationship):
     a = make_person(display_name="A")
     b = make_person(display_name="B")

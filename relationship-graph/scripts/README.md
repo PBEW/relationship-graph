@@ -15,4 +15,4 @@ python ../scripts/seed.py --reset                           # wipe existing peop
 python ../scripts/seed.py --no-avatars                      # skip avatar image generation (faster)
 ```
 
-Reads the same `DATABASE_URL` / `UPLOAD_FOLDER` config as the Flask app (via `backend/.env`), so it writes to whatever database your backend is currently pointed at.
+Reads the same `DATABASE_URL` config as the Flask app (via `backend/.env`), so it writes to whatever database your backend is currently pointed at.

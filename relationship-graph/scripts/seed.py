@@ -10,10 +10,10 @@ migration (73707af94cf9_seed_relationship_types). Run `flask db upgrade`
 first.
 """
 import argparse
+import io
 import os
 import random
 import sys
-import uuid
 from datetime import date, timedelta
 
 BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
@@ -24,7 +24,8 @@ from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
 from app import create_app  # noqa: E402
 from app.extensions import db  # noqa: E402
-from app.models import Person, Relationship, RelationshipType  # noqa: E402
+from app.models import Avatar, Person, Relationship, RelationshipType  # noqa: E402
+from app.services.person_service import AVATAR_URL_PREFIX  # noqa: E402
 
 fake = Faker()
 
@@ -53,8 +54,8 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
-def generate_avatar(display_name: str, upload_folder: str) -> str:
-    """Generate a simple initials avatar PNG and return its /uploads/ URL."""
+def generate_avatar(display_name: str) -> str:
+    """Store a generated initials avatar and return the URL it's served at."""
     initials = "".join(part[0].upper() for part in display_name.split()[:2]) or "?"
     size = 128
     bg = random.choice(AVATAR_COLORS)
@@ -65,10 +66,14 @@ def generate_avatar(display_name: str, upload_folder: str) -> str:
     w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
     draw.text(((size - w) / 2 - bbox[0], (size - h) / 2 - bbox[1]), initials, fill="white", font=font)
 
-    filename = f"{uuid.uuid4()}.png"
-    os.makedirs(upload_folder, exist_ok=True)
-    img.save(os.path.join(upload_folder, filename), "PNG")
-    return f"/uploads/{filename}"
+    buffer = io.BytesIO()
+    img.save(buffer, "PNG")
+
+    avatar = Avatar(mimetype="image/png", data=buffer.getvalue())
+    db.session.add(avatar)
+    # Needed before the id can go into the person's avatar URL.
+    db.session.flush()
+    return f"{AVATAR_URL_PREFIX}{avatar.id}"
 
 
 def random_status() -> str:
@@ -76,10 +81,10 @@ def random_status() -> str:
     return random.choices(values, weights=weights, k=1)[0]
 
 
-def make_person(upload_folder: str, generate_avatars: bool) -> Person:
+def make_person(generate_avatars: bool) -> Person:
     display_name = fake.name()
     return Person(
-        avatar=generate_avatar(display_name, upload_folder) if generate_avatars else None,
+        avatar=generate_avatar(display_name) if generate_avatars else None,
         display_name=display_name,
         nickname=fake.first_name() if random.random() < 0.5 else None,
         vrchat_name=f"{fake.user_name()}_vr" if random.random() < 0.8 else None,
@@ -124,12 +129,11 @@ def run(num_people: int, num_relationships: int, reset: bool, generate_avatars: 
             print("Resetting: deleting all relationships and people...")
             Relationship.query.delete()
             Person.query.delete()
+            Avatar.query.delete()
             db.session.commit()
 
-        upload_folder = app.config["UPLOAD_FOLDER"]
-
         print(f"Creating {num_people} people...")
-        people = [make_person(upload_folder, generate_avatars) for _ in range(num_people)]
+        people = [make_person(generate_avatars) for _ in range(num_people)]
         db.session.add_all(people)
         db.session.flush()
 

@@ -1,6 +1,9 @@
-"""Local avatar file storage."""
-import os
-import uuid
+"""Validation and normalisation of uploaded avatar images.
+
+Produces bytes for the caller to persist (see models/avatar.py for why they
+go in the database rather than on disk).
+"""
+import io
 
 from flask import current_app
 from PIL import Image, UnidentifiedImageError
@@ -11,13 +14,27 @@ from app.utils.errors import APIError
 
 MAX_AVATAR_DIMENSION = 512
 
+# Pillow's format names, and the mimetype each is served back as.
+_FORMAT_BY_EXTENSION = {
+    "png": ("PNG", "image/png"),
+    "jpg": ("JPEG", "image/jpeg"),
+    "jpeg": ("JPEG", "image/jpeg"),
+    "gif": ("GIF", "image/gif"),
+    "webp": ("WEBP", "image/webp"),
+}
+
 
 def _allowed(filename: str) -> bool:
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     return ext in current_app.config["ALLOWED_AVATAR_EXTENSIONS"]
 
 
-def save_avatar(file: FileStorage) -> str:
+def process_avatar(file: FileStorage) -> tuple[bytes, str]:
+    """Validate, downscale and re-encode an upload. Returns (data, mimetype).
+
+    The image is decoded rather than trusted by extension, so a renamed
+    executable can't ride in as a .png.
+    """
     if not file or not file.filename:
         raise APIError("No file provided", status_code=400)
     if not _allowed(file.filename):
@@ -25,6 +42,7 @@ def save_avatar(file: FileStorage) -> str:
         raise APIError(f"File type not allowed. Allowed: {allowed}", status_code=400)
 
     ext = secure_filename(file.filename).rsplit(".", 1)[-1].lower()
+    pil_format, mimetype = _FORMAT_BY_EXTENSION[ext]
 
     try:
         image = Image.open(file.stream)
@@ -38,28 +56,15 @@ def save_avatar(file: FileStorage) -> str:
     # Downscale oversized avatars to cut storage/bandwidth - never upscales.
     image.thumbnail((MAX_AVATAR_DIMENSION, MAX_AVATAR_DIMENSION), Image.LANCZOS)
 
-    if ext in ("jpg", "jpeg") and image.mode in ("RGBA", "P", "LA"):
+    if pil_format == "JPEG" and image.mode in ("RGBA", "P", "LA"):
         background = Image.new("RGB", image.size, (255, 255, 255))
         background.paste(image.convert("RGBA"), mask=image.convert("RGBA").split()[-1])
         image = background
 
-    filename = f"{uuid.uuid4()}.{ext}"
-    upload_folder = current_app.config["UPLOAD_FOLDER"]
-    os.makedirs(upload_folder, exist_ok=True)
-
     save_kwargs = {"optimize": True}
-    if ext in ("jpg", "jpeg"):
+    if pil_format == "JPEG":
         save_kwargs["quality"] = 85
-    image.save(os.path.join(upload_folder, filename), **save_kwargs)
 
-    return f"/uploads/{filename}"
-
-
-def delete_avatar(avatar_url: str | None) -> None:
-    if not avatar_url or not avatar_url.startswith("/uploads/"):
-        return
-    filename = avatar_url.removeprefix("/uploads/")
-    filename = secure_filename(filename)
-    path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
-    if os.path.isfile(path):
-        os.remove(path)
+    buffer = io.BytesIO()
+    image.save(buffer, format=pil_format, **save_kwargs)
+    return buffer.getvalue(), mimetype

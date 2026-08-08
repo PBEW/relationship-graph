@@ -52,6 +52,26 @@ def test_update_person_partial(client, auth_headers, make_person):
     assert body["nickname"] == "Nicky"
 
 
+def test_members_may_add_and_edit_but_not_delete_people(
+    client, member_headers, make_person
+):
+    person = make_person(display_name="Kept")
+
+    created = client.post(
+        "/api/people", json={"display_name": "Added by member"}, headers=member_headers
+    )
+    assert created.status_code == 201
+
+    edited = client.put(
+        f"/api/people/{person.id}", json={"nickname": "Nicky"}, headers=member_headers
+    )
+    assert edited.status_code == 200
+
+    # Deleting cascades to their relationships, so it's super admin only.
+    deleted = client.delete(f"/api/people/{person.id}", headers=member_headers)
+    assert deleted.status_code == 403
+
+
 def test_delete_person(client, auth_headers, make_person):
     person = make_person(display_name="To Delete")
     response = client.delete(f"/api/people/{person.id}", headers=auth_headers)

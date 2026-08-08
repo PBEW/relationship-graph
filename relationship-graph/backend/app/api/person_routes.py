@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 from app.schemas.person_schema import person_query_schema, person_schema, person_write_schema
 from app.schemas.relationship_schema import relationship_schema
 from app.services.person_service import PersonService
-from app.utils.auth_decorators import login_required
+from app.utils.auth_decorators import login_required, super_admin_required
 from app.utils.pagination import paginated_response
 
 person_bp = Blueprint("people", __name__)
@@ -49,8 +49,10 @@ def update_person(person_id):
     return jsonify(person_schema.dump(person))
 
 
+# Super admin only: deleting a person also silently takes every relationship
+# they appear in, so it's the one action a member can't undo by re-typing.
 @person_bp.delete("/<uuid:person_id>")
-@login_required
+@super_admin_required
 def delete_person(person_id):
     service.delete_person(person_id)
     return "", 204

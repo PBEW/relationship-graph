@@ -6,7 +6,7 @@ from app.schemas.relationship_type_schema import (
     relationship_type_write_schema,
 )
 from app.services.relationship_type_service import RelationshipTypeService
-from app.utils.auth_decorators import login_required
+from app.utils.auth_decorators import login_required, super_admin_required
 
 relationship_type_bp = Blueprint("relationship_types", __name__)
 service = RelationshipTypeService()
@@ -42,8 +42,10 @@ def update_type(type_id):
     return jsonify(relationship_type_schema.dump(rt))
 
 
+# Super admin only: relationship types are shared vocabulary for the whole
+# community, not per-person data a member should be able to retire.
 @relationship_type_bp.delete("/<uuid:type_id>")
-@login_required
+@super_admin_required
 def delete_type(type_id):
     service.delete_type(type_id)
     return "", 204
