@@ -1,5 +1,4 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 
 import { PersonAvatar } from "@/components/people/PersonAvatar";
 import { cn } from "@/lib/utils";
@@ -7,56 +6,56 @@ import { cn } from "@/lib/utils";
 export interface AvatarNodeData extends Record<string, unknown> {
   personId: string;
   displayName: string;
-  nickname: string | null;
   avatar: string | null;
   dimmed: boolean;
   highlighted: boolean;
   emphasized: boolean;
-  collapsed: boolean;
-  hasHiddenNeighbors: boolean;
-  onToggleCollapse: (personId: string) => void;
+  /** The person the graph is currently focused on (see GraphPage). */
+  focused: boolean;
 }
 
 export type AvatarNodeType = Node<AvatarNodeData, "avatar">;
 
+/** Avatar diameter in px - RelationshipEdge trims links back to this radius. */
+export const NODE_AVATAR_SIZE = 56;
+
+// Both handles sit at the node's centre and are invisible, so edges are drawn
+// straight from centre to centre. Fixed Top/Bottom handles turned every link
+// into an S-curve, which is what made a dense graph unreadable.
+const CENTER_HANDLE =
+  "!pointer-events-none !left-1/2 !top-[28px] !size-0 !min-h-0 !min-w-0 !-translate-x-1/2 !-translate-y-1/2 !border-0 !bg-transparent";
+
 export function AvatarNode({ data, selected }: NodeProps<AvatarNodeType>) {
-  const { displayName, nickname, avatar, dimmed, highlighted, emphasized, collapsed, hasHiddenNeighbors } = data;
+  const { displayName, avatar, dimmed, highlighted, emphasized, focused } = data;
+  const active = focused || selected;
 
   return (
     <div
       className={cn(
-        "relative flex flex-col items-center gap-1 rounded-xl border bg-card px-3 py-2 shadow-sm transition-all",
-        selected ? "border-primary ring-2 ring-primary" : "border-border",
-        highlighted && "ring-2 ring-yellow-400",
-        emphasized && !highlighted && "ring-2 ring-foreground/40 shadow-md",
-        dimmed && "opacity-20",
+        "flex w-28 cursor-pointer flex-col items-center gap-1 transition-opacity",
+        dimmed && "opacity-15",
       )}
-      style={{ width: 96 }}
     >
-      <Handle type="target" position={Position.Top} className="!bg-muted-foreground" />
-      <PersonAvatar avatar={avatar} displayName={displayName} className="size-12" />
-      <div className="w-full truncate text-center text-xs font-medium">{displayName}</div>
-      {nickname && (
-        <div className="w-full truncate text-center text-[10px] text-muted-foreground">
-          "{nickname}"
-        </div>
-      )}
-      {hasHiddenNeighbors && (
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            data.onToggleCollapse(data.personId);
-          }}
-          className="nodrag nopan absolute -bottom-2 flex size-5 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground"
-          title={collapsed ? "ขยายความเชื่อมโยง" : "ย่อความเชื่อมโยง"}
-        >
-          {collapsed ? <ChevronsUpDown className="size-3" /> : <ChevronsDownUp className="size-3" />}
-        </button>
-      )}
-      <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground" />
+      <Handle type="target" position={Position.Top} className={CENTER_HANDLE} />
+      <PersonAvatar
+        avatar={avatar}
+        displayName={displayName}
+        className={cn(
+          "size-14 border-2 bg-card shadow-sm transition-all",
+          active ? "border-primary ring-2 ring-primary/40" : "border-card",
+          highlighted && !active && "border-yellow-400 ring-2 ring-yellow-400/40",
+          emphasized && !highlighted && !active && "border-foreground/40",
+        )}
+      />
+      <div
+        className={cn(
+          "max-w-full truncate rounded-sm bg-background/75 px-1 text-center text-[11px] leading-tight backdrop-blur-[1px]",
+          active ? "font-semibold" : "font-medium",
+        )}
+      >
+        {displayName}
+      </div>
+      <Handle type="source" position={Position.Bottom} className={CENTER_HANDLE} />
     </div>
   );
 }

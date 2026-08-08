@@ -14,7 +14,7 @@ import {
   type NodeMouseHandler,
 } from "@xyflow/react";
 import { Share2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { EmptyState } from "@/components/common/EmptyState";
 import { AvatarNode, type AvatarNodeType } from "@/components/graph/AvatarNode";
@@ -25,100 +25,99 @@ import { RelationshipEdge, type RelationshipEdgeType } from "@/components/graph/
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useGraph } from "@/hooks/useGraph";
-import { computeForceLayout } from "@/lib/graphLayout";
+import { computeForceLayout, computeRadialLayout } from "@/lib/graphLayout";
 import type { GraphData } from "@/types";
 
 const nodeTypes = { avatar: AvatarNode };
 const edgeTypes = { relationship: RelationshipEdge };
 
+/** Stable key for a pair of people, regardless of which side is a or b. */
+function pairKey(a: string, b: string): string {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
 function GraphCanvas({ data }: { data: GraphData }) {
   const { fitView } = useReactFlow();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 200);
-  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(new Set());
   const [hiddenTypeIds, setHiddenTypeIds] = useState<Set<string>>(new Set());
+  // The whole graph at once is an unreadable hairball at 100+ people, so
+  // clicking someone narrows it to just them and their direct connections.
+  const [focusedPersonId, setFocusedPersonId] = useState<string | null>(null);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   // Nodes/edges live in React-Flow-managed state (via useNodesState) rather
   // than being passed straight from a memo, specifically so dragging a node
-  // persists: a memo would hand back the same force-layout position on every
+  // persists: a memo would hand back the same layout position on every
   // unrelated re-render (search, hover, ...) and silently snap drags back.
   const [nodes, setNodes, onNodesChange] = useNodesState<AvatarNodeType>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<RelationshipEdgeType>([]);
 
-  const initialPositions = useMemo(() => computeForceLayout(data), [data]);
+  const forcePositions = useMemo(() => computeForceLayout(data), [data]);
+
+  // Edges left after the legend's type filters, and the view built from them.
+  const { visibleEdges, visibleNodeIds, neighborIds } = useMemo(() => {
+    const typeVisible = data.edges.filter((e) => !hiddenTypeIds.has(e.relationship_type.id));
+
+    if (focusedPersonId) {
+      const neighbors: string[] = [];
+      const seen = new Set<string>();
+      for (const edge of typeVisible) {
+        const other: string | null =
+          edge.source === focusedPersonId
+            ? edge.target
+            : edge.target === focusedPersonId
+              ? edge.source
+              : null;
+        if (other && other !== focusedPersonId && !seen.has(other)) {
+          seen.add(other);
+          neighbors.push(other);
+        }
+      }
+      const inView = new Set([focusedPersonId, ...neighbors]);
+      return {
+        // Links *between* the neighbours are kept too - with ~10 people on
+        // screen they still read clearly, and they're the interesting part.
+        visibleEdges: typeVisible.filter((e) => inView.has(e.source) && inView.has(e.target)),
+        visibleNodeIds: inView,
+        neighborIds: neighbors,
+      };
+    }
+
+    const connected = new Set<string>();
+    for (const edge of typeVisible) {
+      connected.add(edge.source);
+      connected.add(edge.target);
+    }
+    const hasAnyRelationship = new Set<string>();
+    for (const edge of data.edges) {
+      hasAnyRelationship.add(edge.source);
+      hasAnyRelationship.add(edge.target);
+    }
+    // Keep genuinely unconnected people on screen, but drop the ones left
+    // stranded purely because their relationship type is filtered out.
+    const inView = new Set(
+      data.nodes.filter((n) => connected.has(n.id) || !hasAnyRelationship.has(n.id)).map((n) => n.id),
+    );
+    return { visibleEdges: typeVisible, visibleNodeIds: inView, neighborIds: [] };
+  }, [data, hiddenTypeIds, focusedPersonId]);
+
+  const positions = useMemo(
+    () => (focusedPersonId ? computeRadialLayout(focusedPersonId, neighborIds) : forcePositions),
+    [focusedPersonId, neighborIds, forcePositions],
+  );
 
   const neighborMap = useMemo(() => {
     const map = new Map<string, Set<string>>();
     for (const node of data.nodes) map.set(node.id, new Set());
-    for (const edge of data.edges) {
+    for (const edge of visibleEdges) {
       map.get(edge.source)?.add(edge.target);
       map.get(edge.target)?.add(edge.source);
     }
     return map;
-  }, [data]);
-
-  const toggleCollapse = useCallback((personId: string) => {
-    setCollapsedNodeIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(personId)) next.delete(personId);
-      else next.add(personId);
-      return next;
-    });
-  }, []);
-
-  const toggleType = useCallback((typeId: string) => {
-    setHiddenTypeIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(typeId)) next.delete(typeId);
-      else next.add(typeId);
-      return next;
-    });
-  }, []);
-
-  const { visibleEdgeIds, hiddenNodeIds, totalDegree } = useMemo(() => {
-    const hiddenEdgeIdSet = new Set<string>();
-    for (const edge of data.edges) {
-      if (
-        collapsedNodeIds.has(edge.source) ||
-        collapsedNodeIds.has(edge.target) ||
-        hiddenTypeIds.has(edge.relationship_type.id)
-      ) {
-        hiddenEdgeIdSet.add(edge.id);
-      }
-    }
-
-    const visibleDegree = new Map<string, number>();
-    const degree = new Map<string, number>();
-    for (const node of data.nodes) {
-      visibleDegree.set(node.id, 0);
-      degree.set(node.id, 0);
-    }
-    for (const edge of data.edges) {
-      degree.set(edge.source, (degree.get(edge.source) ?? 0) + 1);
-      degree.set(edge.target, (degree.get(edge.target) ?? 0) + 1);
-      if (!hiddenEdgeIdSet.has(edge.id)) {
-        visibleDegree.set(edge.source, (visibleDegree.get(edge.source) ?? 0) + 1);
-        visibleDegree.set(edge.target, (visibleDegree.get(edge.target) ?? 0) + 1);
-      }
-    }
-
-    const hidden = new Set<string>();
-    for (const node of data.nodes) {
-      if (collapsedNodeIds.has(node.id)) continue;
-      const total = degree.get(node.id) ?? 0;
-      const visible = visibleDegree.get(node.id) ?? 0;
-      if (total > 0 && visible === 0) hidden.add(node.id);
-    }
-
-    return {
-      visibleEdgeIds: new Set(data.edges.filter((e) => !hiddenEdgeIdSet.has(e.id)).map((e) => e.id)),
-      hiddenNodeIds: hidden,
-      totalDegree: degree,
-    };
-  }, [data, collapsedNodeIds, hiddenTypeIds]);
+  }, [data.nodes, visibleEdges]);
 
   const matchingNodeIds = useMemo(() => {
     if (!debouncedSearch.trim()) return null;
@@ -141,9 +140,9 @@ function GraphCanvas({ data }: { data: GraphData }) {
   const computedNodes: AvatarNodeType[] = useMemo(
     () =>
       data.nodes
-        .filter((n) => !hiddenNodeIds.has(n.id))
+        .filter((n) => visibleNodeIds.has(n.id))
         .map((n) => {
-          const pos = initialPositions.get(n.id);
+          const pos = positions.get(n.id);
           const highlighted = matchingNodeIds?.has(n.id) ?? false;
           const inHoverNeighborhood = hoveredNeighborhood?.has(n.id) ?? true;
           const dimmed = (matchingNodeIds ? !highlighted : false) || !inHoverNeighborhood;
@@ -155,88 +154,101 @@ function GraphCanvas({ data }: { data: GraphData }) {
             data: {
               personId: n.id,
               displayName: n.display_name,
-              nickname: n.nickname,
               avatar: n.avatar,
               dimmed,
               highlighted,
               emphasized,
-              collapsed: collapsedNodeIds.has(n.id),
-              hasHiddenNeighbors: (totalDegree.get(n.id) ?? 0) > 0,
-              onToggleCollapse: toggleCollapse,
+              focused: n.id === focusedPersonId,
             },
           } satisfies AvatarNodeType;
         }),
-    [
-      data.nodes,
-      initialPositions,
-      hiddenNodeIds,
-      matchingNodeIds,
-      hoveredNeighborhood,
-      hoveredNodeId,
-      collapsedNodeIds,
-      totalDegree,
-      toggleCollapse,
-    ],
+    [data.nodes, positions, visibleNodeIds, matchingNodeIds, hoveredNeighborhood, hoveredNodeId, focusedPersonId],
   );
 
-  const computedEdges: RelationshipEdgeType[] = useMemo(
-    () =>
-      data.edges
-        .filter((e) => visibleEdgeIds.has(e.id))
-        .map((e) => {
-          const matchesSearch = matchingNodeIds
-            ? matchingNodeIds.has(e.source) && matchingNodeIds.has(e.target)
-            : true;
-          const touchesHovered = hoveredNodeId
-            ? e.source === hoveredNodeId || e.target === hoveredNodeId
-            : true;
-          const dimmed = !matchesSearch || !touchesHovered;
-          const emphasized = (!!hoveredNodeId && touchesHovered) || (!!matchingNodeIds && matchesSearch);
-          return {
-            id: e.id,
-            type: "relationship",
-            source: e.source,
-            target: e.target,
-            animated: e.status === "active" && !dimmed,
-            data: {
-              label: e.relationship_type.name,
-              color: e.relationship_type.color,
-              status: e.status,
-              dimmed,
-              emphasized,
-            },
-          } satisfies RelationshipEdgeType;
-        }),
-    [data.edges, visibleEdgeIds, matchingNodeIds, hoveredNodeId],
-  );
+  const computedEdges: RelationshipEdgeType[] = useMemo(() => {
+    const seenPerPair = new Map<string, number>();
+    return visibleEdges.map((e) => {
+      const key = pairKey(e.source, e.target);
+      const parallelIndex = seenPerPair.get(key) ?? 0;
+      seenPerPair.set(key, parallelIndex + 1);
 
-  // Merge rather than replace: keep whatever position a node is currently
-  // at (e.g. dragged by the user) and only seed brand-new nodes from the
-  // force layout.
+      const matchesSearch = matchingNodeIds
+        ? matchingNodeIds.has(e.source) && matchingNodeIds.has(e.target)
+        : true;
+      const touchesHovered = hoveredNodeId
+        ? e.source === hoveredNodeId || e.target === hoveredNodeId
+        : true;
+      const dimmed = !matchesSearch || !touchesHovered;
+      const emphasized = (!!hoveredNodeId && touchesHovered) || (!!matchingNodeIds && matchesSearch);
+      return {
+        id: e.id,
+        type: "relationship",
+        source: e.source,
+        target: e.target,
+        animated: e.status === "active" && !dimmed,
+        data: {
+          label: e.relationship_type.name,
+          color: e.relationship_type.color,
+          status: e.status,
+          dimmed,
+          emphasized,
+          parallelIndex,
+        },
+      } satisfies RelationshipEdgeType;
+    });
+  }, [visibleEdges, matchingNodeIds, hoveredNodeId]);
+
+  // Entering/leaving focus swaps the whole layout, so positions must be
+  // replaced then; otherwise merge, to keep whatever the user has dragged.
+  const layoutKey = focusedPersonId ?? "__all__";
+  const layoutKeyRef = useRef(layoutKey);
+
   useEffect(() => {
+    const layoutChanged = layoutKeyRef.current !== layoutKey;
+    layoutKeyRef.current = layoutKey;
     setNodes((current) => {
+      if (layoutChanged) return computedNodes;
       const currentById = new Map(current.map((n) => [n.id, n]));
       return computedNodes.map((n) => {
         const existing = currentById.get(n.id);
         return existing ? { ...n, position: existing.position } : n;
       });
     });
-  }, [computedNodes, setNodes]);
+  }, [computedNodes, layoutKey, setNodes]);
 
   useEffect(() => {
     setEdges(computedEdges);
   }, [computedEdges, setEdges]);
 
+  // Re-frame after a focus change, once the new layout has been committed.
+  useEffect(() => {
+    const timer = setTimeout(() => fitView({ duration: 400, padding: 0.25, maxZoom: 1.2 }), 60);
+    return () => clearTimeout(timer);
+  }, [focusedPersonId, fitView]);
+
   useEffect(() => {
     if (!matchingNodeIds || matchingNodeIds.size === 0) return;
-    const ids = [...matchingNodeIds].filter((id) => !hiddenNodeIds.has(id));
+    const ids = [...matchingNodeIds].filter((id) => visibleNodeIds.has(id));
     if (ids.length === 0) return;
     fitView({ nodes: ids.map((id) => ({ id })), duration: 400, padding: 0.3, maxZoom: 1.2 });
-  }, [matchingNodeIds, hiddenNodeIds, fitView]);
+  }, [matchingNodeIds, visibleNodeIds, fitView]);
 
-  const onNodeClick: NodeMouseHandler<AvatarNodeType> = useCallback((_event, node) => {
-    setSelectedPersonId(node.id);
+  const showPerson = useCallback((personId: string) => {
+    setFocusedPersonId(personId);
+    setSelectedPersonId(personId);
   }, []);
+
+  // Clicking someone re-frames the graph around them but deliberately does
+  // *not* open the profile panel - that would slide over the ring that was
+  // just drawn. Clicking the person already at the centre opens it, as does
+  // the toolbar's explicit button.
+  const onNodeClick: NodeMouseHandler<AvatarNodeType> = useCallback(
+    (_event, node) => {
+      if (node.id === focusedPersonId) setSelectedPersonId(node.id);
+      else setFocusedPersonId(node.id);
+    },
+    [focusedPersonId],
+  );
 
   const onEdgeClick: EdgeMouseHandler<RelationshipEdgeType> = useCallback((_event, edge) => {
     setSelectedEdgeId(edge.id);
@@ -249,6 +261,26 @@ function GraphCanvas({ data }: { data: GraphData }) {
   const onNodeMouseLeave = useCallback(() => {
     setHoveredNodeId(null);
   }, []);
+
+  // Searching across the whole community only makes sense outside focus mode,
+  // where most people are hidden - so typing drops back to the full graph.
+  const onSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    if (value.trim()) setFocusedPersonId(null);
+  }, []);
+
+  const toggleType = useCallback((typeId: string) => {
+    setHiddenTypeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(typeId)) next.delete(typeId);
+      else next.add(typeId);
+      return next;
+    });
+  }, []);
+
+  const focusedPerson = focusedPersonId
+    ? (data.nodes.find((n) => n.id === focusedPersonId) ?? null)
+    : null;
 
   const selectedEdge = selectedEdgeId ? (data.edges.find((e) => e.id === selectedEdgeId) ?? null) : null;
   const sourceNode = selectedEdge ? (data.nodes.find((n) => n.id === selectedEdge.source) ?? null) : null;
@@ -277,17 +309,23 @@ function GraphCanvas({ data }: { data: GraphData }) {
         <MiniMap pannable zoomable nodeColor="var(--color-primary)" maskColor="rgba(0,0,0,0.15)" />
         <GraphToolbar
           search={search}
-          onSearchChange={setSearch}
+          onSearchChange={onSearchChange}
           matchCount={matchingNodeIds?.size ?? 0}
           hiddenTypeIds={hiddenTypeIds}
           onToggleType={toggleType}
+          focusedPersonName={focusedPerson?.display_name ?? null}
+          onClearFocus={() => setFocusedPersonId(null)}
+          onOpenFocusedProfile={() => focusedPersonId && setSelectedPersonId(focusedPersonId)}
+          visiblePeopleCount={visibleNodeIds.size}
+          totalPeopleCount={data.nodes.length}
+          visibleRelationshipCount={visibleEdges.length}
         />
       </ReactFlow>
 
       <ProfileSheet
         personId={selectedPersonId}
         onClose={() => setSelectedPersonId(null)}
-        onSelectPerson={setSelectedPersonId}
+        onSelectPerson={showPerson}
       />
       <RelationshipDetailDialog
         edge={selectedEdge}

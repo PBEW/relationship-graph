@@ -55,3 +55,39 @@ export function computeForceLayout(
   }
   return positions;
 }
+
+/**
+ * Lays one person out at the centre with their direct connections evenly
+ * spaced on a ring around them - used by the graph's focus mode.
+ *
+ * Reusing the whole-graph force positions there would leave the neighbours
+ * scattered across the canvas (they're placed relative to *everyone*), which
+ * defeats the point of focusing. A ring is deterministic and stays readable.
+ */
+export function computeRadialLayout(
+  centerId: string,
+  neighborIds: string[],
+): Map<string, PositionedNode> {
+  const positions = new Map<string, PositionedNode>();
+  positions.set(centerId, { id: centerId, x: 0, y: 0 });
+
+  const count = neighborIds.length;
+  if (count === 0) return positions;
+
+  // Grow the ring with the neighbour count so cards never overlap: each one
+  // needs ~150px of arc, and circumference = 2πr.
+  const radius = Math.max(260, (count * 150) / (2 * Math.PI));
+
+  neighborIds.forEach((id, index) => {
+    // Start at the top (-90°) so the first neighbour isn't hidden behind the
+    // focused person's name label.
+    const angle = (index / count) * 2 * Math.PI - Math.PI / 2;
+    positions.set(id, {
+      id,
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+    });
+  });
+
+  return positions;
+}

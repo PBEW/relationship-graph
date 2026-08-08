@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeForceLayout } from '@/lib/graphLayout';
+import { computeForceLayout, computeRadialLayout } from '@/lib/graphLayout';
 import type { GraphData } from '@/types';
 
 function makeGraph(nodeCount: number, edges: [number, number][]): GraphData {
@@ -61,5 +61,43 @@ describe('computeForceLayout', () => {
     const data = makeGraph(0, []);
     const positions = computeForceLayout(data);
     expect(positions.size).toBe(0);
+  });
+});
+
+describe('computeRadialLayout', () => {
+  it('puts the focused person at the origin', () => {
+    const positions = computeRadialLayout('center', ['a', 'b', 'c']);
+    expect(positions.get('center')).toEqual({ id: 'center', x: 0, y: 0 });
+  });
+
+  it('positions every neighbour, all at the same distance from the centre', () => {
+    const neighbors = ['a', 'b', 'c', 'd', 'e'];
+    const positions = computeRadialLayout('center', neighbors);
+
+    expect(positions.size).toBe(neighbors.length + 1);
+    const radii = neighbors.map((id) => {
+      const pos = positions.get(id)!;
+      return Math.hypot(pos.x, pos.y);
+    });
+    for (const radius of radii) {
+      expect(radius).toBeCloseTo(radii[0], 6);
+    }
+  });
+
+  it('grows the ring so crowded neighbourhoods do not overlap', () => {
+    const small = computeRadialLayout('center', ['a', 'b']);
+    const large = computeRadialLayout('center', Array.from({ length: 40 }, (_, i) => `n${i}`));
+
+    const radiusOf = (positions: ReturnType<typeof computeRadialLayout>, id: string) => {
+      const pos = positions.get(id)!;
+      return Math.hypot(pos.x, pos.y);
+    };
+    expect(radiusOf(large, 'n0')).toBeGreaterThan(radiusOf(small, 'a'));
+  });
+
+  it('handles a person with no connections', () => {
+    const positions = computeRadialLayout('lonely', []);
+    expect(positions.size).toBe(1);
+    expect(positions.get('lonely')).toEqual({ id: 'lonely', x: 0, y: 0 });
   });
 });
