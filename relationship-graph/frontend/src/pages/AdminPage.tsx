@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
+import { AdminActivitySection } from "@/pages/admin/AdminActivitySection";
 import { AdminPeopleSection } from "@/pages/admin/AdminPeopleSection";
 import { AdminRelationshipsSection } from "@/pages/admin/AdminRelationshipsSection";
 import { AdminRelationshipTypesSection } from "@/pages/admin/AdminRelationshipTypesSection";
@@ -18,6 +19,7 @@ export function AdminPage() {
           <TabsTrigger value="relationships">ความสัมพันธ์</TabsTrigger>
           <TabsTrigger value="types">ประเภทความสัมพันธ์</TabsTrigger>
           {isSuperAdmin && <TabsTrigger value="users">ผู้ใช้งาน</TabsTrigger>}
+          {isSuperAdmin && <TabsTrigger value="activity">ประวัติการใช้งาน</TabsTrigger>}
         </TabsList>
         <TabsContent value="people">
           <AdminPeopleSection />
@@ -31,6 +33,11 @@ export function AdminPage() {
         {isSuperAdmin && (
           <TabsContent value="users">
             <AdminUsersSection />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
+          <TabsContent value="activity">
+            <AdminActivitySection />
           </TabsContent>
         )}
       </Tabs>

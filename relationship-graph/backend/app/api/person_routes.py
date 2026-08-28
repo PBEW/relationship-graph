@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request
 from app.schemas.person_schema import person_query_schema, person_schema, person_write_schema
 from app.schemas.relationship_schema import relationship_schema
 from app.services.person_service import PersonService
+from app.utils.activity import record_activity
 from app.utils.auth_decorators import login_required, super_admin_required
 from app.utils.pagination import paginated_response
 
@@ -38,6 +39,7 @@ def get_person(person_id):
 def create_person():
     data = person_write_schema.load(request.get_json(silent=True) or {})
     person = service.create_person(data)
+    record_activity("create", "person", person.id, person.display_name)
     return jsonify(person_schema.dump(person)), 201
 
 
@@ -46,6 +48,7 @@ def create_person():
 def update_person(person_id):
     data = person_write_schema.load(request.get_json(silent=True) or {}, partial=True)
     person = service.update_person(person_id, data)
+    record_activity("update", "person", person.id, person.display_name)
     return jsonify(person_schema.dump(person))
 
 
@@ -54,7 +57,11 @@ def update_person(person_id):
 @person_bp.delete("/<uuid:person_id>")
 @super_admin_required
 def delete_person(person_id):
+    # Read the name before it's gone - the log is the only place it survives.
+    person = service.get_person(person_id)
+    display_name = person.display_name
     service.delete_person(person_id)
+    record_activity("delete", "person", person_id, display_name)
     return "", 204
 
 
@@ -63,4 +70,5 @@ def delete_person(person_id):
 def upload_avatar(person_id):
     file = request.files.get("avatar")
     person = service.upload_avatar(person_id, file)
+    record_activity("update", "person", person.id, f"{person.display_name} (รูปโปรไฟล์)")
     return jsonify(person_schema.dump(person))

@@ -9,6 +9,7 @@ erDiagram
     PEOPLE ||--o{ RELATIONSHIPS : "person_a_id"
     PEOPLE ||--o{ RELATIONSHIPS : "person_b_id"
     RELATIONSHIP_TYPES ||--o{ RELATIONSHIPS : "relationship_type_id"
+    USERS ||--o{ ACTIVITY_LOGS : "user_id"
 
     USERS {
         uuid id PK
@@ -16,6 +17,19 @@ erDiagram
         string password_hash
         string role
         boolean is_active
+        datetime last_login_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    ACTIVITY_LOGS {
+        uuid id PK
+        uuid user_id FK
+        string username
+        string action
+        string entity_type
+        uuid entity_id
+        string summary
         datetime created_at
         datetime updated_at
     }
@@ -72,6 +86,9 @@ erDiagram
 ### `users`
 Login accounts. `role` is `super_admin | member` — both can read/write people, relationships, and relationship types; only `super_admin` can manage other accounts (see `docs/API.md`). `is_active` gates login and is re-checked on every authenticated request (not just at token issuance), so deactivating an account takes effect immediately. Seeded by migration `5490fe2cba1e_add_users_table` from `SUPER_ADMIN_USERNAME`/`SUPER_ADMIN_PASSWORD(_HASH)` env vars; managed afterward via `/api/users`.
 
+### `activity_logs`
+Append-only trail of sign-ins and data changes, powering the admin panel's history view. `username` and `summary` are snapshots rather than lookups, so entries stay readable after the account or the record they name is deleted; `user_id` is `ON DELETE SET NULL` for the same reason — "who deleted this?" is exactly what the log is for, so it must outlive the account. Indexed on `created_at`, `action`, and `user_id`, the three ways it's read.
+
 ### `avatars`
 Uploaded profile images, stored as bytes. On disk they'd be wiped by every deploy on the free hosting tier, and the database is the only durable store available; images are capped at 512×512 first, so a whole community is a few megabytes. Rows are immutable — a new upload creates a new row and deletes the old one — which is what makes `/api/avatars/<id>` safe to cache forever.
 
@@ -119,10 +136,11 @@ flask db downgrade -1     # roll back one revision
 flask db history          # view the migration chain
 ```
 
-Four migrations exist so far:
+Five migrations exist so far:
 1. `4c948b14b747_initial_schema` — creates `people`, `relationship_types`, `relationships` with all FKs/indexes/constraints.
 2. `73707af94cf9_seed_relationship_types` — inserts the 12 built-in relationship types.
 3. `5490fe2cba1e_add_users_table` — creates `users` and seeds the first `super_admin` account from env vars.
 4. `75aeafbe0ee4_add_avatars_table` — creates `avatars`, moving uploaded images off the filesystem.
+5. `d80d0e26c235_add_activity_log` — creates `activity_logs` and adds `users.last_login_at`.
 
 > **Note:** These migrations were hand-authored (not `--autogenerate`) because no local/Docker PostgreSQL instance was available in the dev environment used to build this phase. They were reviewed column-by-column against the SQLAlchemy models for correctness, but have **not yet been run against a real PostgreSQL database**. Run `flask db upgrade` (or `docker compose up`, which runs it automatically) against a real Postgres instance and confirm it succeeds before relying on this schema in Phase 3.

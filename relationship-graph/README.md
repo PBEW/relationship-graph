@@ -123,7 +123,7 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 
 ## Testing
 
-**Backend** (pytest, 66 tests — auth, users, avatars, people, relationships, relationship types, dashboard, graph):
+**Backend** (pytest, 80 tests — auth, activity log, users, avatars, people, relationships, relationship types, dashboard, graph):
 
 ```bash
 cd backend

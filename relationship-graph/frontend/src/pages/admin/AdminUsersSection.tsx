@@ -31,6 +31,17 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function formatLastLogin(dateStr: string | null): string {
+  if (!dateStr) return "ยังไม่เคยเข้า";
+  return new Date(dateStr).toLocaleString("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function AdminUsersSection() {
   const { username: currentUsername } = useAuth();
   const { data: users, isLoading } = useUsers();
@@ -91,7 +102,10 @@ export function AdminUsersSection() {
                 <TableHead>ชื่อผู้ใช้</TableHead>
                 <TableHead>สิทธิ์</TableHead>
                 <TableHead className="hidden sm:table-cell">สถานะ</TableHead>
-                <TableHead className="hidden md:table-cell">สร้างเมื่อ</TableHead>
+                {/* Last sign-in earns the earlier breakpoint - it's the one
+                    admins actually came here to check. */}
+                <TableHead className="hidden md:table-cell">เข้าใช้ล่าสุด</TableHead>
+                <TableHead className="hidden lg:table-cell">สร้างเมื่อ</TableHead>
                 <TableHead className="w-24 text-right">การจัดการ</TableHead>
               </TableRow>
             </TableHeader>
@@ -128,6 +142,9 @@ export function AdminUsersSection() {
                     </div>
                   </TableCell>
                   <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
+                    {formatLastLogin(user.last_login_at)}
+                  </TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">
                     {formatDate(user.created_at)}
                   </TableCell>
                   <TableCell className="text-right">

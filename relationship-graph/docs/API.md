@@ -29,11 +29,23 @@ Two roles: `member` (full read/write access to people/relationships/types — sa
 
 > **Behind a proxy:** the app applies `ProxyFix(x_for=1)`, so rate limiting keys on the real client IP rather than the load balancer's. Deploying it somewhere *without* a proxy in front means clients could spoof `X-Forwarded-For`; drop that middleware in `app/__init__.py` if so.
 
+## Activity log (super admin only)
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/activity` | Paginated history, newest first. Query: `page`, `per_page`, `action` (`login`\|`logout`\|`create`\|`update`\|`delete`), `user_id`. |
+
+Each entry carries `username`, `action`, `entity_type`, `entity_id`, a human-readable `summary` of what was acted on, `created_at`, and `user_exists`.
+
+Sign-ins and data changes share one table so the admin panel can show a single chronological history. Entries are written only after the action succeeds, and are never updated or deleted by the app — an audit trail its own users could edit wouldn't be worth keeping. `username` and `summary` are snapshots taken at the time, so an entry still reads correctly after the account or the record it names is gone (`user_exists` goes false, `user_id` null).
+
+> The log grows without bound. Rows are small (a few hundred bytes), so a community this size won't trouble the free tier for years, but it has no retention policy — add one before that stops being true.
+
 ## Users (super admin only)
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/users` | List all accounts. |
+| GET | `/api/users` | List all accounts, each with `last_login_at` (null until their first sign-in). |
 | POST | `/api/users` | Create an account. Body: `username` (unique, 3-80 chars), `password` (min 4 chars), `role` (`member`\|`super_admin`, default `member`). |
 | PATCH | `/api/users/<uuid>` | Partial update — `username`, `password` (optional; only rehashed if provided), `role`, `is_active`. Deactivating a user (`is_active: false`) blocks their next request immediately, even on an unexpired token. |
 | DELETE | `/api/users/<uuid>` | Delete an account. |

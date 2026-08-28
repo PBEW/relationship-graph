@@ -6,6 +6,7 @@ from app.schemas.relationship_type_schema import (
     relationship_type_write_schema,
 )
 from app.services.relationship_type_service import RelationshipTypeService
+from app.utils.activity import record_activity
 from app.utils.auth_decorators import login_required, super_admin_required
 
 relationship_type_bp = Blueprint("relationship_types", __name__)
@@ -31,6 +32,7 @@ def get_type(type_id):
 def create_type():
     data = relationship_type_write_schema.load(request.get_json(silent=True) or {})
     rt = service.create_type(data)
+    record_activity("create", "relationship_type", rt.id, rt.name)
     return jsonify(relationship_type_schema.dump(rt)), 201
 
 
@@ -39,6 +41,7 @@ def create_type():
 def update_type(type_id):
     data = relationship_type_write_schema.load(request.get_json(silent=True) or {}, partial=True)
     rt = service.update_type(type_id, data)
+    record_activity("update", "relationship_type", rt.id, rt.name)
     return jsonify(relationship_type_schema.dump(rt))
 
 
@@ -47,5 +50,7 @@ def update_type(type_id):
 @relationship_type_bp.delete("/<uuid:type_id>")
 @super_admin_required
 def delete_type(type_id):
+    name = service.get_type(type_id).name
     service.delete_type(type_id)
+    record_activity("delete", "relationship_type", type_id, name)
     return "", 204

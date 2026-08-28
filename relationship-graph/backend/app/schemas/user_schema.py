@@ -11,7 +11,8 @@ class UserSchema(Schema):
     role = fields.String(load_default="member", validate=validate.OneOf(ROLE_VALUES))
     is_active = fields.Boolean(load_default=True)
     created_at = fields.DateTime(dump_only=True)
+    last_login_at = fields.DateTime(dump_only=True, allow_none=True)
 
 
 user_schema = UserSchema(exclude=("password",))
-user_write_schema = UserSchema(exclude=("id", "created_at"))
+user_write_schema = UserSchema(exclude=("id", "created_at", "last_login_at"))

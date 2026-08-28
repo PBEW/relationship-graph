@@ -148,6 +148,29 @@ export interface UserAccount {
   role: UserRole;
   is_active: boolean;
   created_at: string;
+  last_login_at: string | null;
+}
+
+export type ActivityAction = "login" | "logout" | "create" | "update" | "delete";
+
+export type ActivityEntityType =
+  | "session"
+  | "person"
+  | "relationship"
+  | "relationship_type"
+  | "user";
+
+export interface ActivityLogEntry {
+  id: string;
+  user_id: string | null;
+  username: string;
+  action: ActivityAction;
+  entity_type: ActivityEntityType;
+  entity_id: string | null;
+  summary: string | null;
+  created_at: string;
+  /** False once the account behind the entry has been deleted. */
+  user_exists: boolean;
 }
 
 export interface UserAccountInput {

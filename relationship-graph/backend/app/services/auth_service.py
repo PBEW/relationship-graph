@@ -18,7 +18,8 @@ class AuthService:
     def __init__(self):
         self.repo = UserRepository()
 
-    def authenticate(self, username: str, password: str) -> dict:
+    def authenticate(self, username: str, password: str) -> tuple:
+        """Returns (user, tokens) - the caller needs the user to log the sign-in."""
         user = self.repo.get_by_username(username)
         if not user or not check_password_hash(user.password_hash, password):
             raise APIError("Invalid username or password", status_code=401)
@@ -26,10 +27,11 @@ class AuthService:
             raise APIError("This account has been disabled", status_code=401)
 
         identity = str(user.id)
-        return {
+        tokens = {
             "access_token": create_access_token(identity=identity),
             "refresh_token": create_refresh_token(identity=identity),
         }
+        return user, tokens
 
     def refresh(self, identity: str) -> dict:
         return {"access_token": create_access_token(identity=identity)}

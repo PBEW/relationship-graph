@@ -4,5 +4,6 @@ from app.models.person import Person
 from app.models.relationship_type import RelationshipType
 from app.models.relationship import Relationship
 from app.models.user import User
+from app.models.activity_log import ActivityLog
 
-__all__ = ["Avatar", "Person", "RelationshipType", "Relationship", "User"]
+__all__ = ["ActivityLog", "Avatar", "Person", "RelationshipType", "Relationship", "User"]

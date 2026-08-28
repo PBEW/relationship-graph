@@ -4,11 +4,13 @@ from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 
 from app.extensions import limiter
 from app.schemas.auth_schema import login_schema
+from app.services.activity_service import ActivityService
 from app.services.auth_service import AuthService
 from app.utils.auth_decorators import get_current_user, login_required
 
 auth_bp = Blueprint("auth", __name__)
 service = AuthService()
+activity_service = ActivityService()
 
 
 # The only unauthenticated write endpoint, so the only one worth guessing at.
@@ -18,7 +20,8 @@ service = AuthService()
 @limiter.limit("10 per minute; 60 per hour")
 def login():
     data = login_schema.load(request.get_json(silent=True) or {})
-    tokens = service.authenticate(data["username"], data["password"])
+    user, tokens = service.authenticate(data["username"], data["password"])
+    activity_service.record_login(user)
     return jsonify(tokens)
 
 
@@ -33,6 +36,7 @@ def refresh():
 @auth_bp.post("/logout")
 @login_required
 def logout():
+    activity_service.record(get_current_user(), "logout", "session")
     jti = get_jwt()["jti"]
     service.revoke(jti)
     return jsonify({"message": "Successfully logged out"})
