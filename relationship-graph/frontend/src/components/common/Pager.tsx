@@ -24,7 +24,7 @@ export function Pager({ page, pages, hasPrev, hasNext, onPageChange }: PagerProp
         <ChevronLeft className="size-4" />
         ก่อนหน้า
       </Button>
-      <span className="text-sm text-muted-foreground">
+      <span className="text-sm text-muted-foreground tabular-nums">
         หน้า {page} จาก {pages}
       </span>
       <Button variant="outline" size="sm" disabled={!hasNext} onClick={() => onPageChange(page + 1)}>

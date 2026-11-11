@@ -26,7 +26,7 @@ describe("activityBadgeVariant", () => {
   });
 
   it("gives the other actions their own quieter variants", () => {
-    expect(activityBadgeVariant("create")).toBe("default");
+    expect(activityBadgeVariant("create")).toBe("secondary");
     expect(activityBadgeVariant("update")).toBe("secondary");
     expect(activityBadgeVariant("login")).toBe("outline");
   });

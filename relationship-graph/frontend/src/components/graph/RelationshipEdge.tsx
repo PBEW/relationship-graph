@@ -1,28 +1,33 @@
 import { BaseEdge, EdgeLabelRenderer, type Edge, type EdgeProps } from "@xyflow/react";
 
-import { NODE_AVATAR_SIZE } from "@/components/graph/AvatarNode";
+import { TypeBadge } from "@/components/relationships/TypeBadge";
+import { EDGE_TRIM, PARALLEL_SPREAD, parallelBendStep } from "@/lib/graphLayout";
 import { cn } from "@/lib/utils";
 
 export interface RelationshipEdgeData extends Record<string, unknown> {
   label: string;
+  /** Already passed through readableTypeColor. */
   color: string;
   status: "active" | "ended";
   dimmed: boolean;
-  /** Connected to the hovered/selected node, or matches an active search - draw it more prominently and show its label. */
+  /** A line in the focused person's ring, or one of the hovered person's: draw it strongly and print its words. */
   emphasized: boolean;
+  /** A line among the focused person's neighbours: context only, never labelled. */
+  faint: boolean;
   /** 0 for the first link between a pair, 1+ for each extra one - bends duplicates apart so they don't sit on top of each other. */
   parallelIndex: number;
+  /** Where along the line (0 to 1, source to target) the words sit. */
+  labelT: number;
+  onSelect: (edgeId: string) => void;
 }
 
 export type RelationshipEdgeType = Edge<RelationshipEdgeData, "relationship">;
 
-/** Stop the line just outside the avatar instead of running under the face. */
-const TRIM = NODE_AVATAR_SIZE / 2 + 6;
-/** Perpendicular offset per extra link between the same two people. */
-const PARALLEL_SPREAD = 34;
 
 export function RelationshipEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -31,32 +36,34 @@ export function RelationshipEdge({
   selected,
 }: EdgeProps<RelationshipEdgeType>) {
   if (!data) return null;
-  const { label, color, status, dimmed, emphasized, parallelIndex } = data;
+  const { label, color, status, dimmed, emphasized, faint, parallelIndex, labelT, onSelect } = data;
 
   const dx = targetX - sourceX;
   const dy = targetY - sourceY;
   const length = Math.hypot(dx, dy);
   // Overlapping nodes would otherwise produce a backwards (or NaN) path.
-  if (length < TRIM * 2) return null;
+  if (length < EDGE_TRIM * 2) return null;
 
   const ux = dx / length;
   const uy = dy / length;
-  const sx = sourceX + ux * TRIM;
-  const sy = sourceY + uy * TRIM;
-  const tx = targetX - ux * TRIM;
-  const ty = targetY - uy * TRIM;
+  const sx = sourceX + ux * EDGE_TRIM;
+  const sy = sourceY + uy * EDGE_TRIM;
+  const tx = targetX - ux * EDGE_TRIM;
+  const ty = targetY - uy * EDGE_TRIM;
 
   // Alternate the bend side (…, -2, +1, -1, 0, +1, +2 …) so a pair with three
-  // relationships fans out symmetrically rather than drifting to one side.
-  const bendStep = Math.ceil(parallelIndex / 2) * (parallelIndex % 2 === 0 ? -1 : 1);
-  const bend = bendStep * PARALLEL_SPREAD;
+  // relationships fans out symmetrically rather than drifting to one side. The
+  // sign follows the id order because two links in a pair may run in opposite
+  // directions, which would otherwise send them to the same side.
+  const bend = parallelBendStep(parallelIndex) * PARALLEL_SPREAD * (source < target ? 1 : -1);
   const cx = (sx + tx) / 2 - uy * bend;
   const cy = (sy + ty) / 2 + ux * bend;
 
   const edgePath = bend === 0 ? `M ${sx},${sy} L ${tx},${ty}` : `M ${sx},${sy} Q ${cx},${cy} ${tx},${ty}`;
-  // Midpoint of the quadratic curve, which is where the label reads best.
-  const labelX = 0.25 * sx + 0.5 * cx + 0.25 * tx;
-  const labelY = 0.25 * sy + 0.5 * cy + 0.25 * ty;
+  // A point on the quadratic curve (also correct for a straight line, whose
+  // control point is its own midpoint).
+  const labelX = (1 - labelT) ** 2 * sx + 2 * labelT * (1 - labelT) * cx + labelT ** 2 * tx;
+  const labelY = (1 - labelT) ** 2 * sy + 2 * labelT * (1 - labelT) * cy + labelT ** 2 * ty;
 
   const showLabel = selected || emphasized;
 
@@ -65,29 +72,41 @@ export function RelationshipEdge({
       <BaseEdge
         id={id}
         path={edgePath}
-        style={{
-          stroke: color,
-          strokeWidth: selected ? 3 : emphasized ? 2.5 : 1.5,
-          opacity: dimmed ? 0.06 : emphasized ? 0.95 : status === "ended" ? 0.3 : 0.45,
-          strokeDasharray: status === "ended" ? "6 4" : undefined,
-        }}
+        // The stroke is the type's runtime colour. React Flow's own stylesheet
+        // is unlayered, so the width and dash utilities must be important.
+        style={{ stroke: color }}
+        className={cn(
+          "transition-opacity duration-200",
+          selected ? "[stroke-width:3.5]!" : emphasized ? "[stroke-width:2.5]!" : "[stroke-width:1.5]!",
+          status === "ended" && "[stroke-dasharray:6_5]!",
+          dimmed
+            ? "opacity-5"
+            : selected || emphasized
+              ? "opacity-100"
+              : faint
+                ? "opacity-20"
+                : status === "ended"
+                  ? "opacity-25"
+                  : "opacity-40",
+        )}
       />
       {showLabel && (
         <EdgeLabelRenderer>
+          {/* The position is computed per frame from the nodes, so it can't be a class. */}
           <div
-            className={cn(
-              "nodrag nopan absolute rounded-full border px-1.5 py-0.5 text-[10px] font-medium shadow-sm",
-              dimmed && "opacity-15",
-            )}
-            style={{
-              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-              backgroundColor: "var(--card)",
-              borderColor: color,
-              color,
-              zIndex: 1000,
-            }}
+            className="nodrag nopan absolute"
+            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
           >
-            {label}
+            <button
+              type="button"
+              onClick={() => onSelect(id)}
+              className={cn(
+                "pointer-events-auto block max-w-44 cursor-pointer rounded-full [scale:var(--graph-label-scale,1)] group-data-[words=hidden]/graph:hidden",
+                dimmed && "opacity-15",
+              )}
+            >
+              <TypeBadge name={label} color={color} className="bg-card shadow-soft" />
+            </button>
           </div>
         </EdgeLabelRenderer>
       )}

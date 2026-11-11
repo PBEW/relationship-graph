@@ -31,6 +31,8 @@ import {
   useCreateRelationship,
   useUpdateRelationship,
 } from "@/hooks/useRelationshipMutations";
+import { STATUS_LABELS } from "@/lib/relationshipLabels";
+import { readableTypeColor } from "@/lib/typeColor";
 import type { Relationship } from "@/types";
 
 const relationshipFormSchema = z
@@ -135,7 +137,7 @@ export function RelationshipFormDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="person_a_id"
@@ -160,7 +162,7 @@ export function RelationshipFormDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="relationship_type_id"
@@ -178,7 +180,7 @@ export function RelationshipFormDialog({
                           <SelectItem key={t.id} value={t.id}>
                             <span
                               className="mr-1 inline-block size-2.5 rounded-full"
-                              style={{ backgroundColor: t.color }}
+                              style={{ backgroundColor: readableTypeColor(t.color) }}
                             />
                             {t.name}
                           </SelectItem>
@@ -202,8 +204,8 @@ export function RelationshipFormDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="active">คบกันอยู่</SelectItem>
-                        <SelectItem value="ended">เลิกกันแล้ว</SelectItem>
+                        <SelectItem value="active">{STATUS_LABELS.active}</SelectItem>
+                        <SelectItem value="ended">{STATUS_LABELS.ended}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -212,7 +214,7 @@ export function RelationshipFormDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="start_date"
@@ -260,7 +262,7 @@ export function RelationshipFormDialog({
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "สร้าง"}
+                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "เพิ่มความสัมพันธ์"}
               </Button>
             </DialogFooter>
           </form>

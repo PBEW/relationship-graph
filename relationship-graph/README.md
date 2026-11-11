@@ -121,6 +121,18 @@ api (controllers/blueprints) → services (business logic) → repositories (dat
 - **schemas/** — Marshmallow request validation and response serialization.
 - **api/** — Flask blueprints; thin controllers that call services.
 
+## Frontend Pages
+
+All copy is Thai, set in Anuphan, with warm light and dark themes. Every page requires login; `/login` sits outside the navigation.
+
+| Route | Page | What it does |
+|---|---|---|
+| `/` | ค้นหา | The front door: a name search with results directly under it (Enter opens the top result, a miss offers to add that person), then totals, the most connected and newest people, and the relationship types. |
+| `/people` | คนทั้งหมด | Everyone, with search, gender and country filters and pagination. |
+| `/people/:id` | Profile | A person's details, their relationships as sentences split into "ตอนนี้" and "จบไปแล้ว" with editing in place, and their timeline. |
+| `/graph` | แผนผัง | The canvas beside a docked panel (a bottom panel on phones). Clicking anyone centres the ring on them and opens their profile in the panel. `?person=<id>` opens on that person and stays in sync so views can be shared; `?view=all` shows everyone. Above 30 people the page opens on the most connected person. |
+| `/admin` | จัดการ | People, relationships and relationship types for everyone; accounts and the activity history for super admins. |
+
 ## Testing
 
 **Backend** (pytest, 80 tests — auth, activity log, users, avatars, people, relationships, relationship types, dashboard, graph):
@@ -132,7 +144,7 @@ cp .env.example .env    # TEST_DATABASE_URL must point at a real Postgres databa
 pytest
 ```
 
-**Frontend** (Vitest + React Testing Library — utilities, hooks, and presentational components):
+**Frontend** (Vitest + React Testing Library — utilities, Thai error messages, hooks, presentational components, the relationship list, and the graph page's starting view):
 
 ```bash
 cd frontend
@@ -146,10 +158,10 @@ npm run test:watch    # watch mode
 - [x] **Phase 2** — Database (models, indexes, constraints, migrations) — see [database/README.md](database/README.md)
 - [x] **Phase 3** — Backend (repositories, services, schemas, API) — see [docs/API.md](docs/API.md)
 - [x] **Phase 4** — Authentication (JWT)
-- [x] **Phase 5** — Frontend layout (sidebar, search, dark mode)
+- [x] **Phase 5** — Frontend layout (top bar, phone bottom bar, search, dark mode)
 - [x] **Phase 6** — Interactive graph (React Flow)
 - [x] **Phase 7** — CRUD (profile page, admin panel)
-- [x] **Phase 8** — Dashboard + seed data — see [scripts/README.md](scripts/README.md)
+- [x] **Phase 8** — Home page statistics + seed data — see [scripts/README.md](scripts/README.md)
 - [x] **Phase 9** — Optimization
 - [x] **Phase 10** — Testing
 

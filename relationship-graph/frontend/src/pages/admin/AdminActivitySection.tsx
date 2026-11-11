@@ -3,6 +3,8 @@ import { useState } from "react";
 
 import { EmptyState } from "@/components/common/EmptyState";
 import { Pager } from "@/components/common/Pager";
+import { QueryError } from "@/components/common/QueryError";
+import { TableCard } from "@/components/common/TableCard";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -26,23 +28,14 @@ import {
   activityBadgeVariant,
   describeActivity,
 } from "@/lib/activityLabels";
+import { formatDateTime } from "@/lib/formatDate";
 import type { ActivityAction } from "@/types";
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("th-TH", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export function AdminActivitySection() {
   const [page, setPage] = useState(1);
   const [actionFilter, setActionFilter] = useState<ActivityAction | "all">("all");
 
-  const { data, isLoading } = useActivity({
+  const { data, isLoading, isError, error, refetch } = useActivity({
     page,
     per_page: 20,
     action: actionFilter === "all" ? undefined : actionFilter,
@@ -61,7 +54,7 @@ export function AdminActivitySection() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger aria-label="กรองตามการกระทำ" className="w-full sm:w-48">
             <SelectValue placeholder="ทุกการกระทำ" />
           </SelectTrigger>
           <SelectContent>
@@ -75,16 +68,18 @@ export function AdminActivitySection() {
         </Select>
       </div>
 
-      {isLoading ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
+      {isError ? (
+        <QueryError error={error} onRetry={() => void refetch()} />
+      ) : isLoading ? (
+        <Skeleton className="h-64 w-full rounded-2xl" />
       ) : !data || data.items.length === 0 ? (
         <EmptyState icon={History} title="ยังไม่มีประวัติการใช้งาน" />
       ) : (
-        <div className="rounded-xl border">
+        <TableCard>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-44">เวลา</TableHead>
+                <TableHead>เวลา</TableHead>
                 <TableHead>ผู้ใช้</TableHead>
                 <TableHead>การกระทำ</TableHead>
                 <TableHead className="hidden md:table-cell">รายการ</TableHead>
@@ -93,10 +88,10 @@ export function AdminActivitySection() {
             <TableBody>
               {data.items.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell className="text-xs text-muted-foreground">
+                  <TableCell className="text-xs whitespace-normal text-muted-foreground tabular-nums sm:whitespace-nowrap">
                     {formatDateTime(entry.created_at)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-normal">
                     <span className="font-medium">{entry.username}</span>
                     {!entry.user_exists && (
                       <span className="ml-1 text-xs text-muted-foreground">(ลบบัญชีแล้ว)</span>
@@ -108,13 +103,13 @@ export function AdminActivitySection() {
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden max-w-xs truncate text-sm text-muted-foreground md:table-cell">
-                    {entry.summary ?? "—"}
+                    {entry.summary ?? "-"}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
+        </TableCard>
       )}
 
       {data && (

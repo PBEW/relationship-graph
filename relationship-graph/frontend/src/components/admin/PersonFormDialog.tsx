@@ -88,9 +88,11 @@ interface PersonFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   person: Person | null;
+  /** Prefills the name when adding someone, e.g. what was just searched for. */
+  defaultName?: string;
 }
 
-export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialogProps) {
+export function PersonFormDialog({ open, onOpenChange, person, defaultName }: PersonFormDialogProps) {
   const isEditing = !!person;
   const createPerson = useCreatePerson();
   const updatePerson = useUpdatePerson();
@@ -105,12 +107,12 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
 
   useEffect(() => {
     if (open) {
-      form.reset(personToFormValues(person));
+      form.reset({ ...personToFormValues(person), display_name: person?.display_name ?? defaultName ?? "" });
       setAvatarFile(null);
       setAvatarPreview(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, person]);
+  }, [open, person, defaultName]);
 
   const isSubmitting = createPerson.isPending || updatePerson.isPending || uploadAvatar.isPending;
 
@@ -143,21 +145,22 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
         <DialogHeader>
           <DialogTitle>{isEditing ? "แก้ไขข้อมูลคน" : "เพิ่มคน"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "แก้ไขรายละเอียดของคนนี้" : "เพิ่มคนใหม่เข้าไปในกราฟ"}
+            {isEditing ? "แก้ไขรายละเอียดของคนนี้" : "เพิ่มเพื่อนคนใหม่เข้ามาในกลุ่ม"}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <PersonAvatar
                 avatar={avatarPreview ?? person?.avatar ?? null}
                 displayName={form.watch("display_name") || "?"}
                 className="size-16"
               />
-              <div>
+              <div className="min-w-0 flex-1">
                 <Input
                   type="file"
+                  aria-label="เลือกรูปโปรไฟล์"
                   accept="image/png,image/jpeg,image/gif,image/webp"
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null;
@@ -183,7 +186,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="nickname"
@@ -223,7 +226,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="vrchat_name"
@@ -330,7 +333,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "สร้าง"}
+                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "เพิ่มคนนี้"}
               </Button>
             </DialogFooter>
           </form>

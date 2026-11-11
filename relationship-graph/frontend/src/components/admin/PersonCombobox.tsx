@@ -62,7 +62,7 @@ export function PersonCombobox({ value, onChange, excludeId, placeholder = "เน€เ
           aria-expanded={open}
           className="w-full justify-between font-normal"
         >
-          {selectedPerson ? selectedPerson.display_name : placeholder}
+          <span className="truncate">{selectedPerson ? selectedPerson.display_name : placeholder}</span>
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

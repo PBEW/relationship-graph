@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeForceLayout, computeRadialLayout } from '@/lib/graphLayout';
+import {
+  computeForceLayout,
+  computeRadialLayout,
+  computeRingLabels,
+  edgeLabelT,
+  ringLabelPoint,
+  mostConnectedPersonId,
+} from '@/lib/graphLayout';
 import type { GraphData } from '@/types';
 
 function makeGraph(nodeCount: number, edges: [number, number][]): GraphData {
@@ -99,5 +106,91 @@ describe('computeRadialLayout', () => {
     const positions = computeRadialLayout('lonely', []);
     expect(positions.size).toBe(1);
     expect(positions.get('lonely')).toEqual({ id: 'lonely', x: 0, y: 0 });
+  });
+});
+
+describe('edgeLabelT', () => {
+  it('moves parallel links apart', () => {
+    expect(edgeLabelT(1)).not.toBe(edgeLabelT(0));
+    expect(edgeLabelT(2)).not.toBe(edgeLabelT(1));
+  });
+});
+
+describe('computeRingLabels', () => {
+  // The words are 120x32 on screen however far the view zooms out, so in graph
+  // units they grow by 1/zoom; the page only shows them at wordsMinZoom or above.
+  const LABEL = { width: 120, height: 32 };
+  // A small laptop's canvas has about 550px of height to fit the ring into, and
+  // the fit never goes below 0.5 or above 1.1 on desktop.
+  const desktopFitZoom = (count: number) => {
+    const radius = Math.hypot(computeRadialLayout('c', Array.from({ length: count }, (_, i) => `n${i}`)).get('n0')!.x, computeRadialLayout('c', Array.from({ length: count }, (_, i) => `n${i}`)).get('n0')!.y);
+    return Math.min(1.1, Math.max(0.5, 550 / (2 * radius + 170)));
+  };
+
+  function ring(count: number, linksEach: number, compact: boolean) {
+    const ids = Array.from({ length: count }, (_, i) => `n${i}`);
+    const links = new Map(ids.map((id) => [id, linksEach]));
+    return { ids, links, labels: computeRingLabels('center', ids, links, compact) };
+  }
+
+  function expectNoOverlap(count: number, linksEach: number, compact: boolean) {
+    const { ids, labels } = ring(count, linksEach, compact);
+    const scale = 1 / labels.wordsMinZoom;
+    const boxes = ids.flatMap((id, index) =>
+      labels.ts.get(id)!.map((t, parallel) =>
+        ringLabelPoint('center', id, index, count, parallel, t, compact),
+      ),
+    );
+    for (let a = 0; a < boxes.length; a++) {
+      for (let b = a + 1; b < boxes.length; b++) {
+        const apart =
+          Math.abs(boxes[a].x - boxes[b].x) >= LABEL.width * scale ||
+          Math.abs(boxes[a].y - boxes[b].y) >= LABEL.height * scale;
+        expect(apart).toBe(true);
+      }
+    }
+  }
+
+  it.each(Array.from({ length: 40 }, (_, i) => i + 1))(
+    'shows the words of a %i-person desktop ring at its fit zoom without overlap',
+    (count) => {
+      expect(ring(count, 1, false).labels.wordsMinZoom).toBeLessThanOrEqual(desktopFitZoom(count));
+      expectNoOverlap(count, 1, false);
+    },
+  );
+
+  it.each([1, 3, 6, 10, 16])('keeps two links per neighbour apart too (%i neighbours)', (count) => {
+    expectNoOverlap(count, 2, false);
+  });
+
+  it('hides the words of a crowded ring on a phone, where the fit zooms far out', () => {
+    // A phone canvas is about 330px wide inside its padding.
+    const { labels } = ring(13, 1, true);
+    const radius = Math.max(200, 13 * 20);
+    const phoneFitZoom = 330 / (2 * radius + 112);
+    expect(labels.wordsMinZoom).toBeGreaterThan(phoneFitZoom);
+    expectNoOverlap(13, 1, true);
+  });
+
+  it('keeps the words of a small ring on a phone', () => {
+    const { labels } = ring(2, 1, true);
+    const phoneFitZoom = 330 / (2 * 200 + 112);
+    expect(labels.wordsMinZoom).toBeLessThanOrEqual(phoneFitZoom);
+  });
+
+  it('hides crowded neighbours’ names sooner than sparse ones', () => {
+    expect(ring(13, 1, true).labels.namesMinZoom).toBeGreaterThan(ring(4, 1, true).labels.namesMinZoom);
+  });
+});
+
+describe('mostConnectedPersonId', () => {
+  it('picks whoever has the most relationships', () => {
+    const data = makeGraph(4, [[0, 1], [1, 2], [1, 3]]);
+    expect(mostConnectedPersonId(data)).toBe('person-1');
+  });
+
+  it('copes with nobody and with no relationships', () => {
+    expect(mostConnectedPersonId(makeGraph(0, []))).toBeNull();
+    expect(mostConnectedPersonId(makeGraph(2, []))).toBe('person-0');
   });
 });

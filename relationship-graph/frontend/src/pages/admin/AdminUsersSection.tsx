@@ -1,11 +1,14 @@
-import { Pencil, Plus, ShieldUser, Trash2, Users as UsersIcon } from "lucide-react";
+import { Plus, ShieldUser, Users as UsersIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { getApiErrorMessage } from "@/api/client";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { RowActions } from "@/components/admin/RowActions";
 import { UserFormDialog } from "@/components/admin/UserFormDialog";
 import { EmptyState } from "@/components/common/EmptyState";
+import { QueryError } from "@/components/common/QueryError";
+import { TableCard } from "@/components/common/TableCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,30 +24,12 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useDeleteUser, useUpdateUser } from "@/hooks/useUserMutations";
 import { useUsers } from "@/hooks/useUsers";
+import { formatDate, formatDateTime } from "@/lib/formatDate";
 import type { UserAccount } from "@/types";
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("th-TH", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatLastLogin(dateStr: string | null): string {
-  if (!dateStr) return "ยังไม่เคยเข้า";
-  return new Date(dateStr).toLocaleString("th-TH", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export function AdminUsersSection() {
   const { username: currentUsername } = useAuth();
-  const { data: users, isLoading } = useUsers();
+  const { data: users, isLoading, isError, error, refetch } = useUsers();
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
 
@@ -90,81 +75,73 @@ export function AdminUsersSection() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
+      {isError ? (
+        <QueryError error={error} onRetry={() => void refetch()} />
+      ) : isLoading ? (
+        <Skeleton className="h-64 w-full rounded-2xl" />
       ) : !users || users.length === 0 ? (
         <EmptyState icon={UsersIcon} title="ยังไม่มีบัญชีผู้ใช้" />
       ) : (
-        <div className="rounded-xl border">
+        <TableCard>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>ชื่อผู้ใช้</TableHead>
-                <TableHead>สิทธิ์</TableHead>
-                <TableHead className="hidden sm:table-cell">สถานะ</TableHead>
-                {/* Last sign-in earns the earlier breakpoint - it's the one
-                    admins actually came here to check. */}
+                {/* On phones the shield beside the name says the role, leaving
+                    room for the status switch, which is what people came for. */}
+                <TableHead className="hidden sm:table-cell">สิทธิ์</TableHead>
+                <TableHead>สถานะ</TableHead>
                 <TableHead className="hidden md:table-cell">เข้าใช้ล่าสุด</TableHead>
                 <TableHead className="hidden lg:table-cell">สร้างเมื่อ</TableHead>
-                <TableHead className="w-24 text-right">การจัดการ</TableHead>
+                <TableHead className="text-right">การจัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2 font-medium">
+                  <TableCell className="whitespace-normal">
+                    <div className="flex flex-wrap items-center gap-2 font-medium">
                       {user.role === "super_admin" && (
-                        <ShieldUser className="size-4 text-primary" />
+                        <ShieldUser aria-label="ผู้ดูแลระบบ" className="size-4 shrink-0" />
                       )}
                       {user.username}
-                      {user.username === currentUsername && (
-                        <Badge variant="outline" className="text-xs">คุณ</Badge>
-                      )}
+                      {user.username === currentUsername && <Badge variant="outline">คุณ</Badge>}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === "super_admin" ? "default" : "secondary"}>
-                      {user.role === "super_admin" ? "Super Admin" : "สมาชิก"}
-                    </Badge>
-                  </TableCell>
                   <TableCell className="hidden sm:table-cell">
+                    <Badge variant="secondary">{user.role === "super_admin" ? "ผู้ดูแลระบบ" : "สมาชิก"}</Badge>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={user.is_active}
                         onCheckedChange={(checked) => void toggleActive(user, checked)}
                         disabled={updateUser.isPending}
-                        aria-label={user.is_active ? "ระงับการใช้งาน" : "เปิดใช้งาน"}
+                        aria-label={user.is_active ? `ระงับการใช้งาน ${user.username}` : `เปิดใช้งาน ${user.username}`}
                       />
-                      <span className="text-xs text-muted-foreground">
+                      <span className="hidden text-xs text-muted-foreground sm:inline">
                         {user.is_active ? "ใช้งานได้" : "ถูกระงับ"}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
-                    {formatLastLogin(user.last_login_at)}
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums md:table-cell">
+                    {user.last_login_at ? formatDateTime(user.last_login_at) : "ยังไม่เคยเข้า"}
                   </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground lg:table-cell">
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums lg:table-cell">
                     {formatDate(user.created_at)}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(user)} aria-label="แก้ไข">
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeletingUser(user)}
-                      aria-label="ลบ"
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
+                  <TableCell>
+                    <RowActions
+                      className="justify-end"
+                      onEdit={() => openEdit(user)}
+                      onDelete={() => setDeletingUser(user)}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
+        </TableCard>
       )}
 
       <UserFormDialog open={formOpen} onOpenChange={setFormOpen} user={editingUser} />
@@ -173,8 +150,8 @@ export function AdminUsersSection() {
         open={!!deletingUser}
         onOpenChange={(open) => !open && setDeletingUser(null)}
         title="ลบบัญชีผู้ใช้นี้หรือไม่?"
-        description={`การลบบัญชี "${deletingUser?.username}" จะไม่สามารถกู้คืนได้`}
-        confirmLabel="ลบ"
+        description={`การลบบัญชี "${deletingUser?.username}" จะกู้คืนไม่ได้`}
+        confirmLabel="ลบบัญชีนี้"
         destructive
         isLoading={deleteUser.isPending}
         onConfirm={handleDelete}

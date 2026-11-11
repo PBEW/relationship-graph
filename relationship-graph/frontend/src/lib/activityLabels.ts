@@ -26,12 +26,11 @@ export function describeActivity(action: ActivityAction, entityType: ActivityEnt
   return entity ? `${ACTION_LABELS[action]}${entity}` : ACTION_LABELS[action];
 }
 
-/** Colour-codes the badge so deletions stand out when scanning the list. */
+/** Only deletions get colour, so they stand out when scanning the list. */
 export function activityBadgeVariant(
   action: ActivityAction,
 ): "default" | "secondary" | "destructive" | "outline" {
   if (action === "delete") return "destructive";
-  if (action === "create") return "default";
-  if (action === "update") return "secondary";
+  if (action === "create" || action === "update") return "secondary";
   return "outline";
 }

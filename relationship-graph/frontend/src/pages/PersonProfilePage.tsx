@@ -1,75 +1,41 @@
-import { ArrowLeft, Cake, Globe, MessageCircleHeart, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Share2 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Link, useParams } from "react-router-dom";
 
-import { getApiErrorMessage } from "@/api/client";
-import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { RelationshipFormDialog } from "@/components/admin/RelationshipFormDialog";
+import { PersonFormDialog } from "@/components/admin/PersonFormDialog";
+import { QueryError } from "@/components/common/QueryError";
+import { PersonDetails } from "@/components/people/PersonDetails";
 import { PersonAvatar } from "@/components/people/PersonAvatar";
-import { Badge } from "@/components/ui/badge";
+import { RelationshipList } from "@/components/relationships/RelationshipList";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAuth } from "@/context/AuthContext";
-import { useDeleteRelationship } from "@/hooks/useRelationshipMutations";
 import { usePersonProfile } from "@/hooks/usePersonProfile";
-import { GENDER_LABELS } from "@/lib/genderLabels";
-import type { Relationship } from "@/types";
+import { formatDate } from "@/lib/formatDate";
+import { readableTypeColor } from "@/lib/typeColor";
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("th-TH", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+const SECTION_CLASS = "rounded-2xl bg-card p-5 shadow-soft md:p-6";
 
 export function PersonProfilePage() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading, isError } = usePersonProfile(id);
-  const { isAuthenticated } = useAuth();
-  const deleteRelationship = useDeleteRelationship();
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingRelationship, setEditingRelationship] = useState<Relationship | null>(null);
-  const [deletingRelationship, setDeletingRelationship] = useState<Relationship | null>(null);
-
-  const openAdd = () => {
-    setEditingRelationship(null);
-    setFormOpen(true);
-  };
-  const openEdit = (rel: Relationship) => {
-    setEditingRelationship(rel);
-    setFormOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!deletingRelationship) return;
-    try {
-      await deleteRelationship.mutateAsync(deletingRelationship.id);
-      toast.success("ลบความสัมพันธ์แล้ว");
-      setDeletingRelationship(null);
-    } catch (err) {
-      toast.error(getApiErrorMessage(err));
-    }
-  };
+  const { data, isLoading, isError, error, refetch } = usePersonProfile(id);
+  const [editOpen, setEditOpen] = useState(false);
 
   if (isLoading) {
     return (
       <div className="mx-auto max-w-3xl space-y-4 p-4 md:p-6">
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <Skeleton className="h-40 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
   }
 
   if (isError || !data) {
     return (
-      <div className="mx-auto max-w-3xl p-6 text-center text-muted-foreground">
-        ไม่พบข้อมูลคนนี้
-        <div className="mt-4">
+      <div className="mx-auto max-w-3xl space-y-4 p-4 md:p-6">
+        <QueryError title="เปิดโปรไฟล์นี้ไม่ได้" error={error} onRetry={() => void refetch()} />
+        <div className="text-center">
           <Button asChild variant="outline">
-            <Link to="/people">กลับไปหน้ารายชื่อคน</Link>
+            <Link to="/people">กลับไปดูคนทั้งหมด</Link>
           </Button>
         </div>
       </div>
@@ -79,185 +45,88 @@ export function PersonProfilePage() {
   const { person, relationships, timeline, stats } = data;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-6">
+    <div className="mx-auto max-w-3xl space-y-4 p-4 md:p-6">
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link to="/people">
           <ArrowLeft className="size-4" />
-          กลับไปหน้ารายชื่อคน
+          คนทั้งหมด
         </Link>
       </Button>
 
-      <Card>
-        <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-start">
-          <PersonAvatar avatar={person.avatar} displayName={person.display_name} className="size-20" />
-          <div className="flex-1 space-y-2">
-            <div>
-              <h1 className="text-2xl font-semibold">{person.display_name}</h1>
-              {person.nickname && (
-                <p className="text-muted-foreground">"{person.nickname}"</p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {person.vrchat_name && <Badge variant="secondary">VRChat: {person.vrchat_name}</Badge>}
-              {person.discord && <Badge variant="secondary">Discord: {person.discord}</Badge>}
-              {person.steam && <Badge variant="secondary">Steam: {person.steam}</Badge>}
-              {person.twitter && <Badge variant="secondary">Twitter: {person.twitter}</Badge>}
-              {person.gender && <Badge variant="outline">{GENDER_LABELS[person.gender]}</Badge>}
-            </div>
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              {person.country && (
-                <span className="flex items-center gap-1">
-                  <Globe className="size-3.5" /> {person.country}
-                </span>
-              )}
-              {person.birthday && (
-                <span className="flex items-center gap-1">
-                  <Cake className="size-3.5" /> {formatDate(person.birthday)}
-                </span>
-              )}
-            </div>
-            {person.bio && <p className="text-sm">{person.bio}</p>}
+      <section className={SECTION_CLASS}>
+        {/* Phones put a smaller avatar beside the name, so the relationships
+            start on the first screen; wider screens give it its own column. */}
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-3 sm:items-start sm:gap-x-5">
+          <PersonAvatar
+            avatar={person.avatar}
+            displayName={person.display_name}
+            className="size-14 sm:row-span-3 sm:size-24"
+          />
+          <div>
+            <h1 className="text-2xl font-semibold wrap-break-word md:text-3xl">{person.display_name}</h1>
+            {person.nickname && <p className="text-muted-foreground">"{person.nickname}"</p>}
           </div>
-        </CardContent>
-      </Card>
+          <div className="col-span-2 sm:col-span-1 sm:col-start-2">
+            <PersonDetails person={person} />
+          </div>
+          <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:col-start-2">
+              <Button variant="outline" onClick={() => setEditOpen(true)}>
+                <Pencil className="size-4" />
+                แก้ไขข้อมูล
+              </Button>
+              <Button asChild>
+                <Link to={`/graph?person=${person.id}`}>
+                  <Share2 className="size-4" />
+                  ดูในแผนผัง
+                </Link>
+              </Button>
+          </div>
+        </div>
+        {stats.total_relationships > 0 && (
+          <p className="mt-4 border-t pt-4 tabular-nums">
+            มีความสัมพันธ์ทั้งหมด {stats.total_relationships} รายการ ยังเป็นอยู่ {stats.active_relationships} และจบแล้ว{" "}
+            {stats.ended_relationships}
+          </p>
+        )}
+      </section>
 
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold">{stats.total_relationships}</div>
-            <div className="text-xs text-muted-foreground">ทั้งหมด</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold">{stats.active_relationships}</div>
-            <div className="text-xs text-muted-foreground">คบกันอยู่</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold">{stats.ended_relationships}</div>
-            <div className="text-xs text-muted-foreground">เลิกกันแล้ว</div>
-          </CardContent>
-        </Card>
-      </div>
+      <section className={SECTION_CLASS}>
+        <RelationshipList personId={person.id} relationships={relationships} />
+      </section>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MessageCircleHeart className="size-4" />
-            ความสัมพันธ์
-          </CardTitle>
-          {isAuthenticated && (
-            <Button size="sm" variant="outline" onClick={openAdd}>
-              <Plus className="size-4" />
-              เพิ่มความสัมพันธ์
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {relationships.length === 0 ? (
-            <p className="text-sm text-muted-foreground">ยังไม่มีความสัมพันธ์</p>
-          ) : (
-            relationships.map((rel) => {
-              const other = rel.person_a_id === person.id ? rel.person_b : rel.person_a;
-              return (
-                <div
-                  key={rel.id}
-                  className="flex items-center justify-between gap-2 rounded-md border border-border p-3 text-sm hover:bg-accent/50"
-                >
-                  <Link to={`/people/${other.id}`} className="flex min-w-0 flex-1 items-center gap-2">
-                    <PersonAvatar avatar={other.avatar} displayName={other.display_name} className="size-8" />
-                    <span className="truncate font-medium">{other.display_name}</span>
+      <section className={SECTION_CLASS}>
+        <h2 className="mb-3 text-lg font-semibold">เกิดอะไรขึ้นบ้าง</h2>
+        {timeline.length === 0 ? (
+          <p className="text-sm text-muted-foreground">ใส่วันที่เริ่มหรือวันที่จบให้ความสัมพันธ์ แล้วเรื่องราวจะขึ้นตรงนี้</p>
+        ) : (
+          <ol className="space-y-4 border-l-2 pl-4">
+            {timeline.map((event, i) => (
+              <li key={`${event.relationship_id}-${event.event}-${i}`} className="relative">
+                <span
+                  aria-hidden
+                  className="absolute top-1.5 -left-[23px] size-3 rounded-full"
+                  style={{ backgroundColor: readableTypeColor(event.color) }}
+                />
+                <div className="text-xs text-muted-foreground tabular-nums">{formatDate(event.date)}</div>
+                <div>
+                  {event.event === "started"
+                    ? `เริ่มเป็น${event.relationship_type}กับ `
+                    : `จบการเป็น${event.relationship_type}กับ `}
+                  <Link
+                    to={`/people/${event.with_person_id}`}
+                    className="font-medium underline decoration-primary decoration-2 underline-offset-4 transition-colors duration-200 hover:text-primary"
+                  >
+                    {event.with_person_name}
                   </Link>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Badge
-                      style={{
-                        backgroundColor: `${rel.relationship_type.color}20`,
-                        color: rel.relationship_type.color,
-                        borderColor: `${rel.relationship_type.color}40`,
-                      }}
-                      variant="outline"
-                    >
-                      {rel.relationship_type.name}
-                      {rel.status === "ended" && " (เลิกแล้ว)"}
-                    </Badge>
-                    {isAuthenticated && (
-                      <>
-                        <Button variant="ghost" size="icon" className="size-7" onClick={() => openEdit(rel)} aria-label="แก้ไข">
-                          <Pencil className="size-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-7"
-                          onClick={() => setDeletingRelationship(rel)}
-                          aria-label="ลบ"
-                        >
-                          <Trash2 className="size-3.5 text-destructive" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
                 </div>
-              );
-            })
-          )}
-        </CardContent>
-      </Card>
+                {event.note && <div className="text-sm text-muted-foreground">{event.note}</div>}
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">ไทม์ไลน์</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {timeline.length === 0 ? (
-            <p className="text-sm text-muted-foreground">ยังไม่มีเหตุการณ์ในไทม์ไลน์</p>
-          ) : (
-            <ol className="space-y-4 border-l border-border pl-4">
-              {timeline.map((event, i) => (
-                <li key={`${event.relationship_id}-${event.event}-${i}`} className="relative">
-                  <span
-                    className="absolute -left-[21px] top-1 size-2.5 rounded-full"
-                    style={{ backgroundColor: event.color }}
-                  />
-                  <div className="text-xs text-muted-foreground">{formatDate(event.date)}</div>
-                  <div className="text-sm">
-                    <span className="font-medium">
-                      {event.event === "started"
-                        ? event.relationship_type
-                        : `เลิก${event.relationship_type}กัน`}
-                    </span>{" "}
-                    กับ{" "}
-                    <Link to={`/people/${event.with_person_id}`} className="underline underline-offset-2">
-                      {event.with_person_name}
-                    </Link>
-                  </div>
-                  {event.note && <div className="text-xs text-muted-foreground">{event.note}</div>}
-                </li>
-              ))}
-            </ol>
-          )}
-        </CardContent>
-      </Card>
-
-      <RelationshipFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        relationship={editingRelationship}
-        defaultPersonId={person.id}
-      />
-
-      <ConfirmDialog
-        open={!!deletingRelationship}
-        onOpenChange={(open) => !open && setDeletingRelationship(null)}
-        title="ลบความสัมพันธ์นี้หรือไม่?"
-        description="การลบจะไม่สามารถกู้คืนได้"
-        confirmLabel="ลบ"
-        destructive
-        isLoading={deleteRelationship.isPending}
-        onConfirm={handleDelete}
-      />
+      <PersonFormDialog open={editOpen} onOpenChange={setEditOpen} person={person} />
     </div>
   );
 }

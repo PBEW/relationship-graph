@@ -8,7 +8,7 @@ export interface AvatarNodeData extends Record<string, unknown> {
   displayName: string;
   avatar: string | null;
   dimmed: boolean;
-  highlighted: boolean;
+  /** The hovered person or one of their neighbours in the whole-graph view. */
   emphasized: boolean;
   /** The person the graph is currently focused on (see GraphPage). */
   focused: boolean;
@@ -16,23 +16,24 @@ export interface AvatarNodeData extends Record<string, unknown> {
 
 export type AvatarNodeType = Node<AvatarNodeData, "avatar">;
 
-/** Avatar diameter in px - RelationshipEdge trims links back to this radius. */
-export const NODE_AVATAR_SIZE = 56;
-
 // Both handles sit at the node's centre and are invisible, so edges are drawn
 // straight from centre to centre. Fixed Top/Bottom handles turned every link
 // into an S-curve, which is what made a dense graph unreadable.
 const CENTER_HANDLE =
   "!pointer-events-none !left-1/2 !top-[28px] !size-0 !min-h-0 !min-w-0 !-translate-x-1/2 !-translate-y-1/2 !border-0 !bg-transparent";
 
-export function AvatarNode({ data, selected }: NodeProps<AvatarNodeType>) {
-  const { displayName, avatar, dimmed, highlighted, emphasized, focused } = data;
-  const active = focused || selected;
+/**
+ * One person on the canvas. The name counter-scales with --graph-label-scale so
+ * it never renders under 14px, and is hidden while zoomed far out, where every
+ * name at that size would land on top of its neighbours (GraphPage sets both).
+ */
+export function AvatarNode({ data }: NodeProps<AvatarNodeType>) {
+  const { displayName, avatar, dimmed, emphasized, focused } = data;
 
   return (
     <div
       className={cn(
-        "flex w-28 cursor-pointer flex-col items-center gap-1 transition-opacity",
+        "flex w-28 cursor-pointer flex-col items-center gap-1 transition-opacity duration-200",
         dimmed && "opacity-15",
       )}
     >
@@ -41,16 +42,15 @@ export function AvatarNode({ data, selected }: NodeProps<AvatarNodeType>) {
         avatar={avatar}
         displayName={displayName}
         className={cn(
-          "size-14 border-2 bg-card shadow-sm transition-all",
-          active ? "border-primary ring-2 ring-primary/40" : "border-card",
-          highlighted && !active && "border-yellow-400 ring-2 ring-yellow-400/40",
-          emphasized && !highlighted && !active && "border-foreground/40",
+          "size-14 border-2 bg-card shadow-soft transition-colors duration-200",
+          focused ? "border-primary ring-4 ring-primary/30" : emphasized ? "border-foreground/40" : "border-card",
         )}
       />
       <div
         className={cn(
-          "max-w-full truncate rounded-sm bg-background/75 px-1 text-center text-[11px] leading-tight backdrop-blur-[1px]",
-          active ? "font-semibold" : "font-medium",
+          "max-w-full origin-top truncate rounded-full bg-card px-2 text-center text-xs shadow-soft [scale:var(--graph-label-scale,1)]",
+          focused ? "font-semibold" : "font-medium",
+          !focused && !emphasized && "group-data-[zoom=far]/graph:invisible",
         )}
       >
         {displayName}

@@ -1,13 +1,17 @@
-import { Heart, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeftRight, HeartHandshake, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { getApiErrorMessage } from "@/api/client";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { RelationshipFormDialog } from "@/components/admin/RelationshipFormDialog";
+import { RowActions } from "@/components/admin/RowActions";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Pager } from "@/components/common/Pager";
+import { QueryError } from "@/components/common/QueryError";
+import { TableCard } from "@/components/common/TableCard";
 import { PersonAvatar } from "@/components/people/PersonAvatar";
+import { TypeBadge } from "@/components/relationships/TypeBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +33,8 @@ import {
 import { useDeleteRelationship } from "@/hooks/useRelationshipMutations";
 import { useRelationships } from "@/hooks/useRelationships";
 import { useRelationshipTypes } from "@/hooks/useRelationshipTypes";
+import { formatDateRange } from "@/lib/formatDate";
+import { STATUS_LABELS } from "@/lib/relationshipLabels";
 import type { Relationship, RelationshipStatus } from "@/types";
 
 export function AdminRelationshipsSection() {
@@ -37,7 +43,7 @@ export function AdminRelationshipsSection() {
   const [statusFilter, setStatusFilter] = useState<RelationshipStatus | "all">("all");
 
   const { data: types } = useRelationshipTypes();
-  const { data, isLoading } = useRelationships({
+  const { data, isLoading, isError, error, refetch } = useRelationships({
     page,
     per_page: 10,
     relationship_type_id: typeFilter === "all" ? undefined : typeFilter,
@@ -72,9 +78,15 @@ export function AdminRelationshipsSection() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-40">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Select
+            value={typeFilter}
+            onValueChange={(v) => {
+              setTypeFilter(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger aria-label="กรองตามประเภท" className="w-full sm:w-44">
               <SelectValue placeholder="ทุกประเภท" />
             </SelectTrigger>
             <SelectContent>
@@ -86,14 +98,20 @@ export function AdminRelationshipsSection() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as RelationshipStatus | "all"); setPage(1); }}>
-            <SelectTrigger className="w-36">
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v as RelationshipStatus | "all");
+              setPage(1);
+            }}
+          >
+            <SelectTrigger aria-label="กรองตามสถานะ" className="w-full sm:w-40">
               <SelectValue placeholder="ทุกสถานะ" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ทุกสถานะ</SelectItem>
-              <SelectItem value="active">คบกันอยู่</SelectItem>
-              <SelectItem value="ended">เลิกกันแล้ว</SelectItem>
+              <SelectItem value="active">{STATUS_LABELS.active}</SelectItem>
+              <SelectItem value="ended">{STATUS_LABELS.ended}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -103,72 +121,71 @@ export function AdminRelationshipsSection() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
+      {isError ? (
+        <QueryError error={error} onRetry={() => void refetch()} />
+      ) : isLoading ? (
+        <Skeleton className="h-64 w-full rounded-2xl" />
       ) : !data || data.items.length === 0 ? (
-        <EmptyState icon={Heart} title="ไม่พบความสัมพันธ์" />
+        <EmptyState icon={HeartHandshake} title="ไม่พบความสัมพันธ์" />
       ) : (
-        <div className="rounded-xl border">
+        <TableCard>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>คู่ความสัมพันธ์</TableHead>
+                <TableHead>ใครกับใคร</TableHead>
                 <TableHead>ประเภท</TableHead>
-                <TableHead className="hidden sm:table-cell">สถานะ</TableHead>
-                <TableHead className="hidden md:table-cell">ช่วงเวลา</TableHead>
-                <TableHead className="w-24 text-right">การจัดการ</TableHead>
+                <TableHead className="hidden lg:table-cell">สถานะ</TableHead>
+                <TableHead className="hidden xl:table-cell">ช่วงเวลา</TableHead>
+                <TableHead className="text-right">การจัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.items.map((rel) => (
                 <TableRow key={rel.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      <PersonAvatar avatar={rel.person_a.avatar} displayName={rel.person_a.display_name} className="size-7" />
-                      <span className="text-sm font-medium">{rel.person_a.display_name}</span>
-                      <span className="text-muted-foreground">↔</span>
-                      <PersonAvatar avatar={rel.person_b.avatar} displayName={rel.person_b.display_name} className="size-7" />
-                      <span className="text-sm font-medium">{rel.person_b.display_name}</span>
+                  <TableCell className="whitespace-normal">
+                    <div className="flex flex-col gap-1 md:flex-row md:items-center md:gap-2">
+                      <span className="flex items-center gap-2 font-medium">
+                        <PersonAvatar
+                          avatar={rel.person_a.avatar}
+                          displayName={rel.person_a.display_name}
+                          className="hidden size-8 md:flex"
+                        />
+                        {rel.person_a.display_name}
+                      </span>
+                      <ArrowLeftRight aria-label="กับ" className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="flex items-center gap-2 font-medium">
+                        <PersonAvatar
+                          avatar={rel.person_b.avatar}
+                          displayName={rel.person_b.display_name}
+                          className="hidden size-8 md:flex"
+                        />
+                        {rel.person_b.display_name}
+                      </span>
                     </div>
                   </TableCell>
+                  <TableCell className="whitespace-normal">
+                    <TypeBadge name={rel.relationship_type.name} color={rel.relationship_type.color} />
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <Badge variant={rel.status === "active" ? "secondary" : "outline"}>
+                      {STATUS_LABELS[rel.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden text-xs text-muted-foreground tabular-nums xl:table-cell">
+                    {formatDateRange(rel.start_date, rel.end_date, rel.status) ?? "-"}
+                  </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      style={{
-                        backgroundColor: `${rel.relationship_type.color}20`,
-                        color: rel.relationship_type.color,
-                        borderColor: `${rel.relationship_type.color}40`,
-                      }}
-                    >
-                      {rel.relationship_type.name}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <Badge variant={rel.status === "active" ? "default" : "secondary"}>
-                      {rel.status === "active" ? "คบกันอยู่" : "เลิกกันแล้ว"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden text-xs text-muted-foreground md:table-cell">
-                    {rel.start_date ?? "?"} — {rel.end_date ?? "ปัจจุบัน"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(rel)} aria-label="แก้ไข">
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeletingRelationship(rel)}
-                      aria-label="ลบ"
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
+                    <RowActions
+                      className="justify-end"
+                      onEdit={() => openEdit(rel)}
+                      onDelete={() => setDeletingRelationship(rel)}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
+        </TableCard>
       )}
 
       {data && (
@@ -181,8 +198,8 @@ export function AdminRelationshipsSection() {
         open={!!deletingRelationship}
         onOpenChange={(open) => !open && setDeletingRelationship(null)}
         title="ลบความสัมพันธ์นี้หรือไม่?"
-        description="การลบจะไม่สามารถกู้คืนได้"
-        confirmLabel="ลบ"
+        description="ลบแล้วจะกู้คืนไม่ได้"
+        confirmLabel="ลบความสัมพันธ์"
         destructive
         isLoading={deleteRelationship.isPending}
         onConfirm={handleDelete}

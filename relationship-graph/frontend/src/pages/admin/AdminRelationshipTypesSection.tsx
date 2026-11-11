@@ -1,11 +1,15 @@
-import { Pencil, Plus, Tag, Trash2 } from "lucide-react";
+import { Plus, Tag } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { getApiErrorMessage } from "@/api/client";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { RelationshipTypeFormDialog } from "@/components/admin/RelationshipTypeFormDialog";
+import { RowActions } from "@/components/admin/RowActions";
 import { EmptyState } from "@/components/common/EmptyState";
+import { QueryError } from "@/components/common/QueryError";
+import { TableCard } from "@/components/common/TableCard";
+import { TypeBadge } from "@/components/relationships/TypeBadge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,7 +27,7 @@ import type { RelationshipType } from "@/types";
 
 export function AdminRelationshipTypesSection() {
   const { isSuperAdmin } = useAuth();
-  const { data: types, isLoading } = useRelationshipTypes();
+  const { data: types, isLoading, isError, error, refetch } = useRelationshipTypes();
   const deleteType = useDeleteRelationshipType();
 
   const [formOpen, setFormOpen] = useState(false);
@@ -59,55 +63,46 @@ export function AdminRelationshipTypesSection() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
+      {isError ? (
+        <QueryError error={error} onRetry={() => void refetch()} />
+      ) : isLoading ? (
+        <Skeleton className="h-64 w-full rounded-2xl" />
       ) : !types || types.length === 0 ? (
         <EmptyState icon={Tag} title="ยังไม่มีประเภทความสัมพันธ์" />
       ) : (
-        <div className="rounded-xl border">
+        <TableCard>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ชื่อ</TableHead>
-                <TableHead>ไอคอน</TableHead>
+                <TableHead>ชื่อและสี</TableHead>
+                <TableHead className="hidden sm:table-cell">ไอคอน</TableHead>
                 <TableHead className="hidden md:table-cell">คำอธิบาย</TableHead>
-                <TableHead className="w-24 text-right">การจัดการ</TableHead>
+                <TableHead className="text-right">การจัดการ</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {types.map((rt) => (
                 <TableRow key={rt.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2 font-medium">
-                      <span className="size-3 rounded-full" style={{ backgroundColor: rt.color }} />
-                      {rt.name}
-                    </div>
+                  <TableCell className="whitespace-normal">
+                    <TypeBadge name={rt.name} color={rt.color} />
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{rt.icon}</TableCell>
+                  <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">{rt.icon}</TableCell>
                   <TableCell className="hidden max-w-xs truncate text-sm text-muted-foreground md:table-cell">
-                    {rt.description ?? "—"}
+                    {rt.description ?? "-"}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(rt)} aria-label="แก้ไข">
-                      <Pencil className="size-4" />
-                    </Button>
+                  <TableCell>
                     {/* Shared vocabulary for everyone's data - super admin only. */}
-                    {isSuperAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeletingType(rt)}
-                        aria-label="ลบ"
-                      >
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
-                    )}
+                    <RowActions
+                      className="justify-end"
+                      onEdit={() => openEdit(rt)}
+                      onDelete={isSuperAdmin ? () => setDeletingType(rt) : undefined}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
+        </TableCard>
       )}
 
       <RelationshipTypeFormDialog open={formOpen} onOpenChange={setFormOpen} relationshipType={editingType} />
@@ -116,8 +111,8 @@ export function AdminRelationshipTypesSection() {
         open={!!deletingType}
         onOpenChange={(open) => !open && setDeletingType(null)}
         title="ลบประเภทความสัมพันธ์นี้หรือไม่?"
-        description={`การลบ "${deletingType?.name}" จะไม่สามารถกู้คืนได้ และไม่สามารถลบประเภทที่ยังมีการใช้งานอยู่ได้`}
-        confirmLabel="ลบ"
+        description={`การลบ "${deletingType?.name}" จะกู้คืนไม่ได้ และลบประเภทที่ยังมีการใช้งานอยู่ไม่ได้`}
+        confirmLabel="ลบประเภทนี้"
         destructive
         isLoading={deleteType.isPending}
         onConfirm={handleDelete}

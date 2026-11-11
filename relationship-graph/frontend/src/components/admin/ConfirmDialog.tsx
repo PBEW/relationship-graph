@@ -14,7 +14,8 @@ interface ConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
-  confirmLabel?: string;
+  /** Names the action, e.g. "ลบความสัมพันธ์", never a bare "ยืนยัน". */
+  confirmLabel: string;
   destructive?: boolean;
   isLoading?: boolean;
   onConfirm: () => void;
@@ -25,7 +26,7 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = "ยืนยัน",
+  confirmLabel,
   destructive,
   isLoading,
   onConfirm,
@@ -45,7 +46,11 @@ export function ConfirmDialog({
               onConfirm();
             }}
             disabled={isLoading}
-            className={destructive ? "bg-destructive text-white hover:bg-destructive/90" : undefined}
+            className={
+              destructive
+                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                : undefined
+            }
           >
             {isLoading ? "กรุณารอสักครู่..." : confirmLabel}
           </AlertDialogAction>

@@ -40,7 +40,7 @@ const relationshipTypeFormSchema = z.object({
   name: z.string().min(1, "กรุณากรอกชื่อ").max(50),
   color: z
     .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, "ต้องเป็นรหัสสีแบบ hex เช่น #06B6D4"),
+    .regex(/^#[0-9A-Fa-f]{6}$/, "ต้องเป็นรหัสสีแบบ # ตามด้วย 6 ตัว เช่น #06B6D4"),
   icon: z.string().min(1, "กรุณากรอกชื่อไอคอน").max(50),
   description: z.string().optional(),
 });
@@ -50,7 +50,7 @@ type RelationshipTypeFormValues = z.infer<typeof relationshipTypeFormSchema>;
 function toFormValues(rt: RelationshipType | null): RelationshipTypeFormValues {
   return {
     name: rt?.name ?? "",
-    color: rt?.color ?? "#6366F1",
+    color: rt?.color ?? "#0D9488",
     icon: rt?.icon ?? "",
     description: rt?.description ?? "",
   };
@@ -135,12 +135,12 @@ export function RelationshipTypeFormDialog({
                     <FormControl>
                       <input
                         type="color"
-                        value={/^#[0-9A-Fa-f]{6}$/.test(colorValue) ? colorValue : "#6366F1"}
+                        value={/^#[0-9A-Fa-f]{6}$/.test(colorValue) ? colorValue : "#0D9488"}
                         onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                        className="size-9 shrink-0 cursor-pointer rounded-md border border-input"
+                        className="size-11 shrink-0 cursor-pointer rounded-md border border-input bg-card"
                       />
                     </FormControl>
-                    <Input {...field} placeholder="#RRGGBB" className="font-mono" />
+                    <Input {...field} placeholder="#RRGGBB" />
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -161,7 +161,7 @@ export function RelationshipTypeFormDialog({
                       <option key={icon} value={icon} />
                     ))}
                   </datalist>
-                  <FormDescription>ชื่อไอคอนจาก lucide-react</FormDescription>
+                  <FormDescription>ใส่ชื่อไอคอนเป็นภาษาอังกฤษ เช่น heart หรือ users</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -186,7 +186,7 @@ export function RelationshipTypeFormDialog({
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "สร้าง"}
+                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "เพิ่มประเภทนี้"}
               </Button>
             </DialogFooter>
           </form>

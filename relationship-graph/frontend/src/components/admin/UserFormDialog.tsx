@@ -159,11 +159,11 @@ export function UserFormDialog({ open, onOpenChange, user }: UserFormDialogProps
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="member">สมาชิก</SelectItem>
-                      <SelectItem value="super_admin">Super Admin</SelectItem>
+                      <SelectItem value="super_admin">ผู้ดูแลระบบ</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Super Admin จัดการบัญชีผู้ใช้คนอื่นได้ สมาชิกทั่วไปใช้งานข้อมูลได้ตามปกติ
+                    ผู้ดูแลระบบจัดการบัญชีของคนอื่นและลบข้อมูลคนได้ สมาชิกดูและแก้ไขข้อมูลได้ตามปกติ
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -175,7 +175,7 @@ export function UserFormDialog({ open, onOpenChange, user }: UserFormDialogProps
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "สร้าง"}
+                {isSubmitting ? "กำลังบันทึก..." : isEditing ? "บันทึกการแก้ไข" : "เพิ่มบัญชีนี้"}
               </Button>
             </DialogFooter>
           </form>

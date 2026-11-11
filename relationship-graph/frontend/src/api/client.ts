@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
+import { toThaiErrorMessage, UNKNOWN_ERROR_MESSAGE } from "@/lib/errorMessages";
 import type { AuthTokens } from "@/types";
 
 const ACCESS_TOKEN_KEY = "rg_access_token";
@@ -125,10 +126,11 @@ apiClient.interceptors.response.use(
   },
 );
 
+/** A Thai sentence for any failed request; see toThaiErrorMessage. */
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as { error?: string } | undefined;
-    return data?.error ?? error.message;
+    return toThaiErrorMessage(data?.error, error.response?.status);
   }
-  return error instanceof Error ? error.message : "Unknown error";
+  return UNKNOWN_ERROR_MESSAGE;
 }

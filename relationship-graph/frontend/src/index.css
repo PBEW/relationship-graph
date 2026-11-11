@@ -1,6 +1,29 @@
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 
+/* Thai script needs more size and line height than the Latin defaults assume,
+   so the small steps are raised for the whole app rather than per component. */
+@theme {
+  --font-sans: "Anuphan", sans-serif;
+
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.6;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.65;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.7;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.6;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.5;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 1.45;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.4;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 1.35;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -21,91 +44,136 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --radius-sm: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --shadow-soft: var(--soft-shadow);
 }
 
 :root {
-  --radius: 0.75rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.55 0.22 280);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.96 0.01 280);
-  --secondary-foreground: oklch(0.2 0 0);
-  --muted: oklch(0.96 0.01 280);
-  --muted-foreground: oklch(0.5 0.02 280);
-  --accent: oklch(0.94 0.03 280);
-  --accent-foreground: oklch(0.2 0 0);
-  --destructive: oklch(0.58 0.24 27);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.9 0.01 280);
-  --input: oklch(0.9 0.01 280);
-  --ring: oklch(0.55 0.22 280);
-  --sidebar: oklch(0.99 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.55 0.22 280);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.96 0.01 280);
-  --sidebar-accent-foreground: oklch(0.2 0 0);
-  --sidebar-border: oklch(0.9 0.01 280);
+  --radius: 1rem;
+  --background: #fff4e6;
+  --foreground: #2b241f;
+  --card: #ffffff;
+  --card-foreground: #2b241f;
+  --popover: #ffffff;
+  --popover-foreground: #2b241f;
+  --primary: #d2431a;
+  --primary-foreground: #ffffff;
+  --secondary: #f7ebdd;
+  --secondary-foreground: #2b241f;
+  --muted: #f7ebdd;
+  --muted-foreground: #6f625a;
+  --accent: #f7ebdd;
+  --accent-foreground: #2b241f;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --border: #e7dacb;
+  --input: #e7dacb;
+  --ring: #d2431a;
+  --soft-shadow: 0 2px 4px rgb(87 57 30 / 5%), 0 12px 28px -12px rgb(87 57 30 / 18%);
 }
 
 .dark {
-  --background: oklch(0.14 0.01 280);
-  --foreground: oklch(0.96 0 0);
-  --card: oklch(0.18 0.01 280);
-  --card-foreground: oklch(0.96 0 0);
-  --popover: oklch(0.18 0.01 280);
-  --popover-foreground: oklch(0.96 0 0);
-  --primary: oklch(0.7 0.19 280);
-  --primary-foreground: oklch(0.14 0.01 280);
-  --secondary: oklch(0.24 0.01 280);
-  --secondary-foreground: oklch(0.96 0 0);
-  --muted: oklch(0.24 0.01 280);
-  --muted-foreground: oklch(0.65 0.02 280);
-  --accent: oklch(0.28 0.03 280);
-  --accent-foreground: oklch(0.96 0 0);
-  --destructive: oklch(0.65 0.22 27);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.19 280);
-  --sidebar: oklch(0.16 0.01 280);
-  --sidebar-foreground: oklch(0.96 0 0);
-  --sidebar-primary: oklch(0.7 0.19 280);
-  --sidebar-primary-foreground: oklch(0.14 0.01 280);
-  --sidebar-accent: oklch(0.24 0.01 280);
-  --sidebar-accent-foreground: oklch(0.96 0 0);
-  --sidebar-border: oklch(1 0 0 / 12%);
+  --background: #1f1a16;
+  --foreground: #f5ece2;
+  --card: #2a2420;
+  --card-foreground: #f5ece2;
+  --popover: #2a2420;
+  --popover-foreground: #f5ece2;
+  --primary: #ff7a4d;
+  --primary-foreground: #2b1408;
+  --secondary: #352e28;
+  --secondary-foreground: #f5ece2;
+  --muted: #352e28;
+  --muted-foreground: #bdb1a5;
+  --accent: #352e28;
+  --accent-foreground: #f5ece2;
+  --destructive: #ff8f8f;
+  --destructive-foreground: #2b0b0b;
+  --border: #453c34;
+  --input: #453c34;
+  --ring: #ff7a4d;
+  --soft-shadow: 0 2px 4px rgb(0 0 0 / 20%), 0 12px 28px -12px rgb(0 0 0 / 50%);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
   }
   html {
     color-scheme: light dark;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-base text-foreground;
     margin: 0;
-    font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   }
   #root {
     min-height: 100svh;
   }
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 28%, transparent);
+  }
+  input,
+  textarea {
+    caret-color: var(--primary);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  a {
+    text-underline-offset: 0.2em;
+  }
+}
+
+/* No entrance choreography anywhere; this also stills press feedback, spinners
+   and skeletons for people who asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* React Flow draws its controls and minimap from its own variables. Its
+   stylesheet is unlayered and arrives with the lazy graph route, hence the
+   doubled selectors on the rules that compete with it. */
+.react-flow {
+  --xy-background-color: transparent;
+  --xy-controls-button-background-color: var(--card);
+  --xy-controls-button-background-color-hover: var(--muted);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-color-hover: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-controls-box-shadow: var(--soft-shadow);
+  --xy-minimap-background-color: var(--card);
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--muted) 72%, transparent);
+  --xy-minimap-node-background-color: var(--muted-foreground);
+}
+.react-flow .react-flow__controls {
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+.react-flow .react-flow__controls-button {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.react-flow .react-flow__controls-button svg {
+  max-width: 1rem;
+  max-height: 1rem;
+}
+.react-flow .react-flow__minimap {
+  overflow: hidden;
+  border-radius: var(--radius);
+  box-shadow: var(--soft-shadow);
 }
